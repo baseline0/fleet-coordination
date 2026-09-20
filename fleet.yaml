@@ -1,12 +1,19 @@
 # Fleet Release Manifest - Version 0.1.0 Candidate
 # Date: 2026-09-20
-# Status: candidate
+# Status: candidate (unresolved refs and boundary files)
 # Authority: Architecture control plane
 
 fleet_release: "0.1.0"
 status: "candidate"
 contract_bundle: "0.1.0"
 description: "Initial federation candidate: governance framework + trial profile"
+
+release_lifecycle:
+  candidate: "Manifest exists; validation may have warnings"
+  verified: "Immutable refs, boundary requirements, contracts pass"
+  trial: "Verified candidate approved for bounded internal use"
+  approved: "Trial evidence reviewed and accepted"
+  retired: "No longer selectable"
 
 governance:
   framework_version: "0.1.0"
@@ -27,40 +34,54 @@ trial:
   end_date: "2026-10-18"
 
 repositories:
+  fleet-base:
+    source: "../fleet-base"
+    ref: "96b81ab3943ccaf73f3c29b6aaf41c92bf3754b4"
+    role: "shared infrastructure library"
+    required_boundaries: false
+    status: "approved"
+
   agent-tooling:
     source: "../agent-tooling"
-    ref: "# NOTE: assign commit sha or tag"
-    role: "architecture control plane"
+    ref: "91e4c07aff04a2c29ca9dbe6ba3a6d569ae197f5"
+    role: "shared agent infrastructure and contracts"
     required_boundaries: true
     status: "approved"
 
   fleet-ops:
     source: "../fleet-ops"
-    ref: "# NOTE: assign commit sha or tag"
+    ref: "b9cfcdda997e30ac7cbee9a8dc6cf8a553a956ca"
     role: "runtime control plane"
     required_boundaries: true
     status: "mature"
 
   rope-mcp:
     source: "../rope-mcp"
-    ref: "# NOTE: assign commit sha or tag"
+    ref: "0a16aeb745bf6b0d251c81c63dad75ec7f47297a"
     role: "provider adapter"
     required_boundaries: true
     status: "approved"
 
   vscode-workspace-mcp:
     source: "../vscode-workspace-mcp"
-    ref: "# NOTE: assign commit sha or tag"
+    ref: "1f9dca511fed877ce4885ff2cd3a4ab24904f714"
     role: "provider adapter"
     required_boundaries: true
     status: "approved"
 
   toolboxes:
     source: "../toolboxes"
-    ref: "# NOTE: assign commit sha or tag"
+    ref: "8f1843103eed79f3a4c9be6706325467db6188ec"
     role: "domain capabilities"
+    required_boundaries: true
+    status: "approved"
+
+  fleet-coordination:
+    source: "."
+    ref: "3e67cfc7635149f3e87765e584db3e253a2124ea"
+    role: "architecture and governance control plane"
     required_boundaries: false
-    status: "proposed"
+    status: "approved"
 
 validation:
   contract_bundle_required: true
@@ -70,7 +91,14 @@ validation:
   all_boundary_files_exist: true
   new_boundary_findings_allowed: false
 
+  boundary_file_required: true
+  missing_boundary_behavior:
+    proposed: warning
+    incubating: warning
+    approved: error
+    mature: error
+
 approval:
   decision_authority: "architecture council"
-  decision_date: "# NOTE: pending"
-  decision_outcome: "# NOTE: pending"
+  decision_date: "pending"
+  decision_outcome: "pending"
