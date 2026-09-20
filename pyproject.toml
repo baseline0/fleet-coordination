@@ -8,6 +8,7 @@ authors = [{name = "Mark Alexiuk", email = "malexiuk@gmail.com"}]
 license = {text = "MIT"}
 dependencies = [
     "pyyaml>=6.0.3",
+    "ruamel-yaml>=0.19.1",
 ]
 
 [dependency-groups]

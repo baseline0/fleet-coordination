@@ -1,0 +1,94 @@
+version: "0.1.0"
+description: "Trial posture audit configuration for internal-readonly-poc"
+
+scope:
+  name: internal-readonly-poc
+  repositories:
+    - fleet-coordination
+    - fleet-ops
+    - vscode-workspace-mcp
+
+trial_profile:
+  # Path to trial profile file (relative to project root)
+  path: "trial-profile-readonly-poc.yaml"
+  expected_id: "internal-readonly-poc-v1"
+  required_status: "enabled"
+  max_age_days: 28
+
+manifest:
+  # Path to fleet repository manifest
+  path: "repository-manifest.yaml"
+  expected_contract_version: "0.1.0"
+  # These trial repositories must be declared in the manifest
+  required_repos:
+    - fleet-coordination
+    - fleet-ops
+    - vscode-workspace-mcp
+
+repositories:
+  # For each trial repo, declare what we expect
+  fleet-coordination:
+    boundary_file: "BOUNDARIES.md"  # Expected location; missing = warn
+    requires_git_repo: true
+    requires_commit_refs: false  # Phase A: static only; Phase C will check this
+
+  fleet-ops:
+    boundary_file: "BOUNDARIES.md"
+    requires_git_repo: true
+    requires_commit_refs: false
+
+  vscode-workspace-mcp:
+    boundary_file: ".fleet/BOUNDARIES.md"
+    requires_git_repo: true
+    requires_commit_refs: false
+
+ownership:
+  # Trial requires explicit owners for accountability
+  required_roles:
+    - trial_lead
+    - security_owner
+    - rollback_owner
+
+  # Ownership is declared in the trial profile metadata
+  source: trial_profile
+
+profile_requirements:
+  # Phase A: Static profile checks
+  check_expires_at: true
+  check_status_enabled: true
+  check_allowed_capabilities: true
+  check_allowed_providers: true
+  check_workspace_allowlist: true
+  check_kill_switch_enabled: true
+  check_audit_failure_action: true
+
+checks:
+  # Which Phase A checks to enable
+  profile_exists: true
+  profile_parses: true
+  profile_unexpired: true
+  read_only_enforced: true
+  provider_allowlist_present: true
+  workspace_allowlist_present: true
+  repositories_declared: true
+  boundary_files_present: true
+  ownership_assigned: true
+  contract_version_matches: true
+
+thresholds:
+  # Trial is unsafe if any of these are violated
+  max_days_to_expiry: 28  # Warn if less than 28 days
+  min_providers_allowed: 1  # At least one allowed provider
+  min_workspaces_allowed: 1  # At least one allowed workspace
+  min_capabilities_allowed: 1  # At least one allowed capability
+
+policy:
+  # Fail-closed policy: errors are failures unless explicitly allowed
+  missing_profile: fail
+  expired_profile: fail
+  write_capability_enabled: fail
+  provider_list_empty: fail
+  workspace_scope_unrestricted: fail
+  ownership_missing: fail
+  boundary_file_missing: warn  # Phase A: warn only; Phase C will enforce
+  contract_version_mismatch: warn
