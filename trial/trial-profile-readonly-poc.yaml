@@ -1,11 +1,3 @@
-# Trial Profile: Internal Read-Only PoC v1
-# Explicit Runtime Policy for Governed Capability Path
-# Profile ID: internal-readonly-poc-v1
-# Status: enabled
-# Created: 2026-09-20
-# Expires At: 2026-10-18T23:59:59Z
-# Authority: Internal trial (consultant-approved)
-
 profile_id: internal-readonly-poc-v1
 
 metadata:
