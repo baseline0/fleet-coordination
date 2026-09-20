@@ -1,0 +1,70 @@
+# Trial Profile: Internal Read-Only PoC v1
+# Explicit Runtime Policy for Governed Capability Path
+# Profile ID: internal-readonly-poc-v1
+# Status: enabled
+# Created: 2026-09-20
+# Expires At: 2026-10-18T23:59:59Z
+# Authority: Internal trial (consultant-approved)
+
+profile_id: internal-readonly-poc-v1
+
+metadata:
+  version: "0.1.0"
+  created_at: "2026-09-20T19:00:00Z"
+  expires_at: "2026-10-18T23:59:59Z"
+  extension_possible_until: "2026-10-11T23:59:59Z"
+  trial_lead: "# NOTE: assign"
+  contact_email: "# NOTE: assign"
+
+status: enabled
+
+capabilities:
+  allowed:
+    - find-files
+    - read-workspace-file
+    - read-workspace-metadata
+  denied:
+    - workspace-file-write
+    - workspace-file-delete
+    - organize-python-imports
+    - execute-command
+    - delete-anything
+
+providers:
+  allowed:
+    - vscode-workspace-mcp
+  approval_required: false
+  quarantine_available: true
+
+workspaces:
+  allowlist:
+    - workspace_id: "trial-vscode-workspace-mcp"
+      path: "/home/mark/projects/vscode-workspace-mcp"
+      description: "vscode-workspace-mcp repository (approved trial project)"
+  blocked:
+    - "all others"
+
+limits:
+  max_files_per_operation: 100
+  max_results_per_operation: 500
+  timeout_seconds: 30
+  max_concurrent_operations: 2
+  max_operations_per_run: 50
+  max_retries: 1
+
+security:
+  read_only: true
+  deny_symlink_escape: true
+  deny_sensitive_paths: true
+  sandbox_mode: true
+  output_truncation: true
+
+approval:
+  writes: required
+  admin_operations: denied
+  provider_modification: denied
+
+emergency:
+  provider_quarantine_enabled: true
+  global_kill_switch_enabled: true
+  audit_failure_action: "deny_and_log"

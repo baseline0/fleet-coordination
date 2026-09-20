@@ -1,0 +1,274 @@
+# Boundary Rules (Final Approved Version)
+## Four Core Rules for Federated Governance
+
+**Version:** 0.1.0
+**Date:** 2026-09-20
+**Status:** Approved for implementation
+**Authority:** Architecture control plane
+
+---
+
+rules:
+
+  BOUNDARY-001-PRODUCTION:
+    id: "BOUNDARY-001-PRODUCTION"
+    title: "Core agent-tooling production code must not import concrete MCP implementations"
+
+    description: |
+      Core agent-tooling logic must depend on abstract protocols, not concrete
+      MCP implementations (rope_mcp, vscode_workspace_mcp). This enforces the
+      ports-and-adapters pattern: core logic is independent of provider choice.
+
+    scope:
+      repositories: [agent-tooling]
+      paths: [src/**/*.py]
+      exclude: [src/adapters/**]
+
+    forbidden_imports:
+      - rope_mcp
+      - rope_mcp_*
+      - vscode_workspace_mcp
+
+    exceptions:
+      allowlist_ref: "adapter-allowlist.yaml"
+      comment: "Explicit allowlist entries required for permitted imports"
+
+    enforcement: "blocking"
+    ci_gate: "merge_blocking"
+
+    remediation:
+      treatment: "prohibit_and_define_public_api"
+      examples:
+        - "Don't: from rope_mcp import RopeBackend"
+        - "Do: from agent_tooling.protocols import RefactoringProvider"
+      decision: "See WEEK_2_DECISIONS_RECORD.md Decision 4a-4c"
+      target_date: "2026-12-15"
+
+  BOUNDARY-001-UNIT:
+    id: "BOUNDARY-001-UNIT"
+    title: "Unit tests must not import concrete MCP implementations"
+
+    description: |
+      Unit tests (tests/test_*.py) must use mocks, fakes, or fixtures instead of
+      importing real MCP implementations. This ensures unit tests validate
+      agent-tooling logic in isolation.
+
+    scope:
+      repositories: [agent-tooling]
+      paths: [tests/test_*.py]
+      exclude: [tests/integration/**, tests/fixtures/**]
+
+    forbidden_imports:
+      - rope_mcp
+      - rope_mcp_*
+      - vscode_workspace_mcp
+
+    enforcement: "blocking"
+    ci_gate: "merge_blocking"
+
+    remediation:
+      treatment: "remediate_with_mocks"
+      examples:
+        - "Don't: from rope_mcp import RopeBackend"
+        - "Do: from tests.fixtures.rope_mcp_mock import MockRopeBackend"
+      decision: "See WEEK_2_DECISIONS_RECORD.md Decision 6"
+      target_date: "2026-12-31"
+
+  BOUNDARY-001-INTEGRATION:
+    id: "BOUNDARY-001-INTEGRATION"
+    title: "Integration tests may exercise provider boundaries under governance"
+
+    description: |
+      Integration tests (tests/integration/test_*.py) are explicitly permitted to
+      import and exercise real MCP implementations. This is a separate, named
+      category with explicit ownership and maintenance scope.
+
+    scope:
+      repositories: [agent-tooling]
+      paths: [tests/integration/**]
+
+    allowed_imports:
+      - rope_mcp
+      - rope_mcp_*
+      - vscode_workspace_mcp
+
+    governance:
+      - Provider must be documented (rope-mcp, vscode-workspace-mcp, etc.)
+      - Dedicated CI job for integration tests
+      - Named owner responsible for maintenance
+      - Permanence decision: keep in agent-tooling or migrate to coordination/?
+
+    enforcement: "report_only"
+    ci_gate: "observability_check"
+
+    review_schedule:
+      trigger: "unplanned growth (10+ test files OR 3rd new provider)"
+      decision_due: "2026-12-15"
+      decision_options:
+        - "Keep: Documented ownership and SLA"
+        - "Migrate: Plan and owner for coordination/ move"
+
+    remediation:
+      treatment: "explicit_governance"
+      decision: "See WEEK_2_DECISIONS_RECORD.md Decision 5"
+
+  BOUNDARY-002-FLEET-OPS:
+    id: "BOUNDARY-002-FLEET-OPS"
+    title: "External repositories must not import fleet-ops internal modules"
+
+    description: |
+      All repositories external to fleet-ops must not import fleet_ops.src.*
+      (internal implementation). They must use publicly-defined APIs (fleet_ops.*)
+      that carry backwards-compatibility guarantees. This prevents fleet-ops
+      internals from becoming de-facto public APIs.
+
+    scope:
+      repositories: [agent-tooling, rope-mcp, vscode-workspace-mcp, toolboxes]
+      forbidden: [fleet_ops.src.**]
+
+    forbidden_imports:
+      - fleet_ops.src
+      - fleet_ops.src.*
+
+    allowed_imports:
+      comment: "Public fleet-ops APIs only (defined in fleet-ops/__init__.py)"
+      examples:
+        - "fleet_ops.RepoEvaluationClient"
+        - "fleet_ops.QuotaPolicy"
+        - "fleet_ops.AuditVerifier"
+
+    enforcement: "blocking"
+    ci_gate: "merge_blocking"
+
+    exceptions:
+      allowlist_ref: "adapter-allowlist.yaml"
+      expiry: "2026-12-15"
+      comment: "Temporary exceptions for remediation period only"
+
+    remediation:
+      treatment: "prohibit_and_define_public_api"
+
+      findings:
+        - file: "agent-tooling/src/todo_generator_cli.py"
+          line: 85
+          import: "from fleet_ops.agents.repo_eval import ..."
+          remediation: "Replace with public fleet_ops.RepoEvaluationClient"
+
+        - file: "agent-tooling/src/code_search_cli.py"
+          line: 24
+          import: "from fleet_ops.src.mcp_quota_manager import ..."
+          remediation: "Replace with public fleet_ops.QuotaPolicy"
+
+        - file: "agent-tooling/src/lint_fixer.py"
+          line: 25
+          import: "from fleet_ops.src.mcp_quota_manager import ..."
+          remediation: "Replace with public fleet_ops.QuotaPolicy"
+
+        - file: "agent-tooling/src/test_validator.py"
+          line: 18
+          import: "from fleet_ops.src.audit_logger import ..."
+          remediation: "Move validator to fleet-ops OR use public fleet_ops.AuditVerifier"
+
+      decision: "See WEEK_2_DECISIONS_RECORD.md Decisions 1-3"
+      target_date: "2026-12-15"
+      owner: "# NOTE: fleet-ops maintainer"
+
+---
+
+## Rule Application Matrix
+
+| Repository | BOUNDARY-001-PRODUCTION | BOUNDARY-001-UNIT | BOUNDARY-001-INTEGRATION | BOUNDARY-002-FLEET-OPS |
+|---|---|---|---|---|
+| agent-tooling | Blocking | Blocking | Report-only | Blocking |
+| rope-mcp | N/A | N/A | N/A | Blocking |
+| vscode-workspace-mcp | N/A | N/A | N/A | Blocking |
+| fleet-ops | N/A | N/A | N/A | N/A |
+| toolboxes | N/A | N/A | N/A | Blocking |
+
+---
+
+## Rule Enforcement Status
+
+| Rule | Implemented | CI-integrated | Enforced |
+|---|---|---|---|
+| BOUNDARY-001-PRODUCTION | Scaffolded (scanner exists) | Pending | Pending (dry-run 2026-10-04) |
+| BOUNDARY-001-UNIT | Scaffolded (scanner exists) | Pending | Pending (dry-run 2026-10-04) |
+| BOUNDARY-001-INTEGRATION | Scaffolded (report-only gate) | Pending | Reporting only |
+| BOUNDARY-002-FLEET-OPS | Scaffolded (scanner exists) | Pending | Pending (dry-run 2026-10-04) |
+
+**Timeline:**
+- **2026-09-30:** All rules report-only in CI (baseline scanning)
+- **2026-10-04:** Dry run with blocking enforcement (no merges, no failures)
+- **2026-10-11:** Enforcement enabled (after consultant approval)
+
+---
+
+## Subrule Definitions (Details)
+
+### BOUNDARY-001-PRODUCTION Subrules
+
+**BOUNDARY-001-PRODUCTION-CORE**
+- Applies to: src/agent_*.py, src/protocols/
+- Forbidden: Any rope_mcp or vscode_workspace_mcp import
+- Remediation: Core logic should depend on protocol abstractions
+
+**BOUNDARY-001-PRODUCTION-ORCHESTRATION**
+- Applies to: src/*orchestration*.py, src/router.py
+- Forbidden: Direct MCP imports (except at injection point)
+- Remediation: Accept providers via dependency injection or provider registry
+
+**BOUNDARY-001-PRODUCTION-ADAPTER**
+- Applies to: src/adapters/
+- Exception: Permitted to import MCP implementations
+- Requirement: Must use adapter-allowlist.yaml, owner must be named
+- Review: Before any new adapter addition
+
+### BOUNDARY-001-UNIT Subrules
+
+**BOUNDARY-001-UNIT-FIXTURES**
+- Applies to: tests/fixtures/
+- Permitted: Fixture implementations (mocks, stubs, fakes)
+- Requirement: Must be in tests/fixtures/, not inline in tests/
+
+**BOUNDARY-001-UNIT-PARAMETRIZED**
+- Applies to: tests/test_*.py with parametrization
+- Permitted: Test data generators (must not import real MCPs)
+
+### BOUNDARY-001-INTEGRATION Subrules
+
+**BOUNDARY-001-INTEGRATION-PROVIDER-EXPLICIT**
+- Requires: Provider named in test docstring or metadata
+- Example: `@integration_test(provider="rope-mcp")`
+
+**BOUNDARY-001-INTEGRATION-OWNERSHIP**
+- Requires: Named test owner (person responsible)
+- Requires: Maintenance plan (update frequency, deprecation signal)
+
+### BOUNDARY-002-FLEET-OPS Subrules
+
+**BOUNDARY-002-FLEET-OPS-WHITELIST-STANDARD**
+- Public API: fleet_ops.* (stable)
+- Internal: fleet_ops.src.* (unstable, no guarantees)
+
+**BOUNDARY-002-FLEET-OPS-EXCEPTION-TRACKING**
+- All exceptions in adapter-allowlist.yaml
+- Each exception: owner, justification, expiry date
+- CI alert if exception approaches expiry without resolution
+
+---
+
+## Metrics for Rule Compliance
+
+### Pre-Enforcement (Report-Only)
+- **Finding Count**: Run baseline scan (2026-09-30)
+  - BOUNDARY-001-PRODUCTION: Target 0 new findings
+  - BOUNDARY-001-UNIT: Target 0 new findings (baseline frozen)
+  - BOUNDARY-002-FLEET-OPS: Target 0 new findings
+
+### Post-Enforcement (2026-10-11)
+- **CI Blocking Rate**: Should be 0% (all violations resolved by enforcement date)
+- **Exception Expiry**: All BOUNDARY-002-FLEET-OPS exceptions expire by 2026-12-15
+
+---
+
+Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>

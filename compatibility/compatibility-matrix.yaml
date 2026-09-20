@@ -1,0 +1,344 @@
+# Federation Compatibility Matrix
+## Tested Version Combinations
+
+**Version:** 0.1.0
+**Date:** 2026-09-20
+**Status:** Establishing baseline
+**Authority:** Architecture control plane (coordination)
+
+---
+
+compatibility_matrix:
+  version: "0.1.0"
+  last_verified: "2026-09-20"
+  next_verification: "2026-10-04"  # Gate 5 integration scan
+
+---
+
+## Current Tested Combinations
+
+### Baseline (Pre-Week 2)
+
+```yaml
+combination_id: baseline-0.1.0
+status: established
+tested_date: "2026-09-20"
+verified_by: "boundary-scanner (report-only baseline)"
+
+repositories:
+  agent-tooling: "0.2.0"
+  toolboxes: "0.1.0"  # NOTE: pending admission review
+  rope-mcp: "0.7.2"
+  vscode-workspace-mcp: "0.6.1"
+  fleet-ops: "0.9.0"
+
+contract_bundle: "0.1.0"
+
+tested_workflows:
+  - agent request handling (basic)
+  - rope-mcp capability discovery
+  - vscode-workspace-mcp discovery
+  - operation context creation
+  - audit event tracking
+
+  # NOTE: End-to-end workflows pending implementation
+
+test_results:
+  unit_tests_passed: true
+  integration_scan: "17 findings (baseline), 0 new"
+  boundary_compliance: "pending Week 2 remediation"
+  contract_tests: "pending implementation"
+
+notes: "Baseline established; awaiting Week 2 decisions and strict-mode dry run"
+```
+
+---
+
+## Compatibility Rules
+
+### Guaranteed Compatible
+
+```yaml
+compatible_pairs:
+  - agent-tooling:0.2.0 + rope-mcp:0.7.2  # tested
+  - agent-tooling:0.2.0 + vscode-workspace-mcp:0.6.1  # tested
+  - rope-mcp:0.7.2 + fleet-ops:0.9.0  # tested
+  - vscode-workspace-mcp:0.6.1 + fleet-ops:0.9.0  # tested
+```
+
+### NOT Tested (Do Not Deploy)
+
+```yaml
+untested_pairs:
+  - agent-tooling:0.2.0 + rope-mcp:0.6.0  # deprecated rope version
+  - agent-tooling:0.1.x + anything  # superseded
+  - rope-mcp:0.7.2 + fleet-ops:0.8.0  # fleet-ops too old
+
+  # NOTE: Any new combinations require integration testing
+```
+
+---
+
+## Version Constraints
+
+### agent-tooling
+```yaml
+version: "0.2.0"
+status: stable
+stability: major_0_2_compatible_within_minor
+forward_compatible: false  # no 0.3+ support yet
+backward_compatible: 12_months
+
+requires:
+  fleet-ops: ">=0.9.0,<1.0"
+  rope-mcp: ">=0.7.0,<1.0"
+  vscode-workspace-mcp: ">=0.6.0,<1.0"
+
+exports:
+  - OperationContext (v0.2)
+  - AuditEvent (v0.2)
+```
+
+### rope-mcp
+```yaml
+version: "0.7.2"
+status: stable
+stability: patch_release
+forward_compatible: false
+backward_compatible: 6_months
+
+requires:
+  agent-tooling: ">=0.2.0,<1.0"
+  fleet-ops: ">=0.9.0,<1.0"
+
+supported_until: "2026-12-31"  # after which rope 0.8 required
+deprecation_announced: "2026-09-20"
+migration_target: "rope-mcp:0.8.0 (pending)"
+```
+
+### vscode-workspace-mcp
+```yaml
+version: "0.6.1"
+status: stable
+stability: patch_release
+forward_compatible: false
+backward_compatible: 6_months
+
+requires:
+  agent-tooling: ">=0.2.0,<1.0"
+  fleet-ops: ">=0.9.0,<1.0"
+
+supported_until: "2026-12-31"
+migration_target: "vscode-workspace-mcp:0.7.0 (pending)"
+```
+
+### fleet-ops
+```yaml
+version: "0.9.0"
+status: stable
+stability: minor_release
+forward_compatible: false
+backward_compatible: 6_months
+
+requires:
+  agent-tooling: ">=0.2.0,<1.0"
+
+  # NOTE: MCPs do NOT depend on fleet-ops
+  # fleet-ops depends on MCPs through ProviderInvoker abstraction
+
+exports:
+  - CapabilityRequest (v0.1)
+  - CapabilityDecision (v0.1)
+  - ProviderInvoker (v0.1)
+```
+
+---
+
+## Release Windows
+
+### Q4 2026 (October - December)
+
+```yaml
+oct_2026:
+  agent-tooling: "0.2.x patch releases"
+  rope-mcp: "0.7.2 stable"
+  vscode-workspace-mcp: "0.6.1 stable"
+  fleet-ops: "0.9.x stable"
+
+  target_compatibility: "baseline-0.1.0 verified"
+  major_work: "Week 2 remediation decisions, strict-mode implementation"
+
+dec_2026:
+  agent-tooling: "0.3.0 (proposed)"  # NOTE: requires ADR
+  rope-mcp: "0.8.0 (proposed)"  # NOTE: after 0.7.2 sunset
+  vscode-workspace-mcp: "0.7.0 (proposed)"  # NOTE: after 0.6.1 sunset
+  fleet-ops: "1.0.0 (proposed)"  # NOTE: requires contract stabilization
+
+  major_work: "Phase 1 completion, federation scaling"
+```
+
+---
+
+## Matrix Update Process
+
+### Trigger
+
+New compatibility matrix entry is created when:
+
+1. **New combination tested and verified** (integration scan passes)
+2. **New repository added** to federation (admission gate passes)
+3. **Major version released** (requires ADR + conformance testing)
+4. **Deprecation announced** (with sunset date and migration path)
+
+### Verification Checklist
+
+Before marking a combination `verified`:
+
+- [ ] Unit tests pass (all repos)
+- [ ] Integration scan: 0 new boundary violations
+- [ ] Contract tests pass (producer + consumer)
+- [ ] End-to-end workflows tested
+- [ ] Boundary compliance verified
+- [ ] Performance baseline captured
+- [ ] Security audit (if applicable)
+- [ ] Documentation updated
+
+### Rollback Plan
+
+If a combination fails verification:
+
+- [ ] Revert to last known good combination
+- [ ] Root-cause analysis (ADR)
+- [ ] Fix identified in owning repository
+- [ ] Re-test combination
+- [ ] Update matrix with results
+
+---
+
+## Deprecation Timeline Example
+
+When rope-mcp moves from 0.7 to 0.8:
+
+```yaml
+deprecation_schedule:
+  announcement_date: "2026-09-20"
+
+  rope-mcp:0.7.2:
+    status: active
+    last_releases_until: "2026-12-31"
+    sunset_date: "2027-01-15"
+    supported_customers: "all"
+
+  rope-mcp:0.8.0:
+    status: released
+    earliest_deployment: "2027-01-01"
+    required_by: "2027-04-15"
+
+  migration_resources:
+    - changelog: "MIGRATION-0.7-to-0.8.md"
+    - breaking_changes: "BREAKING_CHANGES.md"
+    - support_window: "90 days"
+    - rollback_support: "30 days post-migration"
+
+affected_customers:
+  # NOTE: Identify teams using 0.7.2
+```
+
+---
+
+## Compatibility Matrix Governance
+
+### Approval Authority
+
+- **New combination:** Architecture control plane (must verify)
+- **Deprecation:** Repository owner (with notification)
+- **Sunset:** Architecture control plane (with migration plan)
+- **Emergency exception:** Fleet ops + affected repo owner (with justification)
+
+### Communication
+
+- **Announcement:** 90 days before sunset
+- **Escalation:** 30 days before sunset (if migration not started)
+- **Cutoff:** 7 days before sunset (production support withdrawn)
+
+### Audit Trail
+
+Every matrix entry logs:
+
+```yaml
+entry:
+  created_date: "2026-09-20T00:00:00Z"
+  created_by: "architecture-control-plane"
+  last_modified: "2026-09-20T00:00:00Z"
+  verification_status: "established"
+
+  decision_record:
+    type: ADR | integration-scan | deprecation-notice
+    link: "# NOTE: governance artifact link"
+    approval: "# NOTE: approver signature"
+```
+
+---
+
+## Testing Cadence
+
+### Weekly
+
+- [ ] Unit tests in all repositories
+- [ ] Boundary scanner (report-only)
+- [ ] Contract test suite (if implemented)
+
+### Bi-weekly
+
+- [ ] Integration scan (all 5 repos)
+- [ ] Compatibility matrix review
+- [ ] Deprecation timeline verification
+
+### Monthly
+
+- [ ] End-to-end workflow tests
+- [ ] Performance baseline check
+- [ ] Security audit (sample)
+- [ ] Release readiness review
+
+### Quarterly
+
+- [ ] Full matrix audit
+- [ ] Deprecation schedule review
+- [ ] Federation growth assessment
+- [ ] Architecture evolution planning
+
+---
+
+## Current Status: Week 2
+
+```yaml
+week_2_status:
+  matrix_version: "0.1.0"
+  baseline_combination: "established"
+  tested_combinations: 1  # baseline only
+
+  pending_verification:
+    - rope_backend_orchestration.py classification (affects rope-mcp role)
+    - fleet_ops public API definition (affects agent-tooling role)
+    - adapter namespace adoption (affects repository structure)
+
+  gates_before_matrix_expansion:
+    - Gate 1: Classification complete
+    - Gate 2: Public API boundaries decided
+    - Gate 3: Remediation ownership assigned
+    - Gate 4: Scanner CLI behavior verified
+    - Gate 5: Integration scan (0 new findings, all 5 repos)
+    - Gate 6: Contract tests pass
+    - Gate 7: Strict-mode dry run succeeds
+
+  next_matrix_entry:
+    target_date: "2026-10-04"
+    name: "week-2-remediation-verified"
+    verification_type: "strict-mode-dry-run"
+    expected_status: "ready for enforcement"
+```
+
+---
+
+Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>

@@ -1,0 +1,207 @@
+# Boundary Remediation Register
+#
+# Tracks ownership, treatment decisions, target dates, and closure evidence
+# for all baseline findings. Separate from baseline-baseline.json (scanner state).
+
+remediations:
+  # Test-scope findings (BOUNDARY-001)
+  # Decision pending: classify as valid integration tests or unnecessary coupling
+
+  - remediation_id: REM-TEST-001
+    finding_fingerprint: "BOUNDARY-001:agent-tooling:tests/test_rope_mcp_executor_unit.py:18:forbidden_import"
+    rule_id: BOUNDARY-001
+    repository: agent-tooling
+    path: tests/test_rope_mcp_executor_unit.py
+    line: 18
+    summary: "test file imports rope_mcp_executor"
+    severity: medium
+    status: triaged
+    accountable_owner: "(DECISION PENDING: assign test owner)"
+    owning_team: agent-tooling
+    remediation_issue: "(DECISION PENDING: assign or close)"
+    treatment: "(DECISION PENDING: classify as valid_test_scope or remediate)"
+    target_date: "(DECISION PENDING)"
+    classification: test_import
+    created_at: "2026-09-20T00:00:00Z"
+    last_reviewed_at: "2026-09-20T00:00:00Z"
+
+  - remediation_id: REM-TEST-002
+    finding_fingerprint: "BOUNDARY-001:agent-tooling:tests/test_rope_mcp_diff_capture.py:11:forbidden_import"
+    rule_id: BOUNDARY-001
+    repository: agent-tooling
+    path: tests/test_rope_mcp_diff_capture.py
+    line: 11
+    summary: "test file imports rope_mcp_diff_capture"
+    severity: medium
+    status: triaged
+    accountable_owner: "(DECISION PENDING)"
+    owning_team: agent-tooling
+    remediation_issue: "(DECISION PENDING)"
+    treatment: "(DECISION PENDING: valid_test_scope or remediate)"
+    target_date: "(DECISION PENDING)"
+    classification: test_import
+    created_at: "2026-09-20T00:00:00Z"
+    last_reviewed_at: "2026-09-20T00:00:00Z"
+
+  - remediation_id: REM-TEST-003
+    finding_fingerprint: "BOUNDARY-001:agent-tooling:tests/test_rope_mcp_integration.py:19:forbidden_import"
+    rule_id: BOUNDARY-001
+    repository: agent-tooling
+    path: tests/test_rope_mcp_integration.py
+    line: 19
+    summary: "integration test file imports rope_mcp_refactor_backend"
+    severity: medium
+    status: triaged
+    accountable_owner: "(DECISION PENDING)"
+    owning_team: agent-tooling
+    remediation_issue: "(DECISION PENDING)"
+    treatment: "(DECISION PENDING: valid_test_scope or remediate)"
+    target_date: "(DECISION PENDING)"
+    classification: integration_test_import
+    created_at: "2026-09-20T00:00:00Z"
+    last_reviewed_at: "2026-09-20T00:00:00Z"
+
+  # Source-scope findings (BOUNDARY-002)
+  # Decision pending: ADR + remediation schedule vs. temporary exception
+
+  - remediation_id: REM-SOURCE-001
+    finding_fingerprint: "BOUNDARY-002:agent-tooling:src/agents/repo_eval.py:85:forbidden_import"
+    rule_id: BOUNDARY-002
+    repository: agent-tooling
+    path: src/agents/repo_eval.py
+    line: 85
+    summary: "agent-tooling imports fleet_ops.agents.repo_eval (production code)"
+    severity: high
+    status: triaged
+
+    # Classification (to be filled by user)
+    classification: "(DECISION PENDING)"
+    dependency_role: "(DECISION PENDING: core | adapter | orchestration | unknown)"
+    current_import: "from fleet_ops.agents.repo_eval import ..."
+    api_type: "(DECISION PENDING: public_api | internal_src | unknown)"
+
+    # Treatment (to be filled by user)
+    accountable_owner: "(DECISION PENDING: assign maintainer)"
+    owning_team: agent-tooling
+    remediation_issue: "(DECISION PENDING: create ADR or issue)"
+    treatment: remediate
+    target_location: "(DECISION PENDING: use_public_api | move_to_fleet_ops | extract_protocol)"
+    target_date: "2026-12-15"
+
+    plan: |-
+      [Will be filled after classification decision]
+      If public API: validate and document
+      If internal src: replace with public API or move to fleet-ops
+      If orchestration: move to fleet-ops as CapabilityRequest handler
+
+    dependencies: []
+    validation:
+      command: "python scripts/boundary-check.py --rule BOUNDARY-002 --filter 'repo_eval.py:85'"
+      expected: "finding absent"
+    created_at: "2026-09-20T00:00:00Z"
+    last_reviewed_at: "2026-09-20T00:00:00Z"
+
+  - remediation_id: REM-SOURCE-002
+    finding_fingerprint: "BOUNDARY-002:agent-tooling:src/src/audit_logger.py:18:forbidden_import"
+    rule_id: BOUNDARY-002
+    repository: agent-tooling
+    path: src/src/audit_logger.py
+    line: 18
+    summary: "agent-tooling imports fleet_ops.src.audit_logger (production code)"
+    severity: high
+    status: triaged
+
+    # Classification (to be filled by user)
+    classification: "(DECISION PENDING)"
+    dependency_role: "(DECISION PENDING: core | adapter | orchestration | unknown)"
+    current_import: "from fleet_ops.src.audit_logger import ..."
+    api_type: "internal_src (⚠️ red flag)"
+
+    # Treatment (to be filled by user)
+    accountable_owner: "(DECISION PENDING: assign maintainer)"
+    owning_team: agent-tooling
+    remediation_issue: "(DECISION PENDING: create ADR or issue)"
+    treatment: remediate
+    target_location: "(DECISION PENDING: use_public_audit_interface | move_validation_to_fleet_ops)"
+    target_date: "2026-12-15"
+
+    plan: |-
+      Direct fleet_ops.src imports are high-risk coupling.
+      Options:
+      1. Use public fleet-ops audit interface (if available)
+      2. Move audit validation logic to fleet-ops
+      3. Define shared audit protocol in agent-tooling
+
+    dependencies: []
+    validation:
+      command: "python scripts/boundary-check.py --rule BOUNDARY-002 --filter 'audit_logger.py:18'"
+      expected: "finding absent"
+    created_at: "2026-09-20T00:00:00Z"
+    last_reviewed_at: "2026-09-20T00:00:00Z"
+
+  - remediation_id: REM-SOURCE-003
+    finding_fingerprint: "BOUNDARY-002:agent-tooling:src/src/mcp_quota_manager.py:24:forbidden_import"
+    rule_id: BOUNDARY-002
+    repository: agent-tooling
+    path: src/src/mcp_quota_manager.py
+    line: 24
+    summary: "agent-tooling imports fleet_ops.src.mcp_quota_manager (production code)"
+    severity: high
+    status: triaged
+
+    # Classification (to be filled by user)
+    classification: "(DECISION PENDING)"
+    dependency_role: "(DECISION PENDING: core | adapter | orchestration | unknown)"
+    current_import: "from fleet_ops.src.mcp_quota_manager import ..."
+    api_type: "internal_src (⚠️ red flag)"
+
+    # Treatment (to be filled by user)
+    accountable_owner: "(DECISION PENDING: assign maintainer)"
+    owning_team: agent-tooling
+    remediation_issue: "(DECISION PENDING: create ADR or issue)"
+    treatment: remediate
+    target_location: "(DECISION PENDING: use_public_quota_api | move_to_fleet_ops | define_protocol)"
+    target_date: "2026-12-15"
+
+    plan: |-
+      Direct fleet_ops.src imports are high-risk coupling.
+      Options:
+      1. Use public fleet-ops quota interface (if available)
+      2. Define shared QuotaPolicy protocol
+      3. Move quota management to fleet-ops
+
+    dependencies: []
+    validation:
+      command: "python scripts/boundary-check.py --rule BOUNDARY-002 --filter 'mcp_quota_manager.py:24'"
+      expected: "finding absent"
+    created_at: "2026-09-20T00:00:00Z"
+    last_reviewed_at: "2026-09-20T00:00:00Z"
+
+# Summary
+summary:
+  total_baseline_findings: 17
+  owned_findings: 0  # Will be 17 once all DECISION PENDING fields are filled
+  findings_with_target_date: 3  # Source imports have dates; test scope pending
+  findings_with_linked_issue: 0  # Will be 3+ once ADRs/issues created
+  findings_with_accountable_owner: 0  # All pending decision
+  open_source_violations: 3
+  test_scope_findings: 14
+  overdue: 0
+  expiring_within_14_days: 0
+
+# Review schedule
+review_schedule:
+  weekly:
+    day: friday
+    task: "Owner reviews all open remediations and updates status"
+
+  before_target_date:
+    days_before: 14
+    task: "Owner provides closure evidence or reschedules"
+
+  on_target_date:
+    task: "Escalate to owning team lead if not resolved"
+
+  strict_mode_requirement:
+    description: "100% of baseline findings must have owned remediations before strict mode"
+    deadline: "2026-10-04"

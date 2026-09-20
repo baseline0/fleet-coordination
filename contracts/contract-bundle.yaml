@@ -1,0 +1,466 @@
+# Contract Bundle v0.1.0
+## Versioned Contracts for Federation Interoperability
+
+**Version:** 0.1.0
+**Date:** 2026-09-20
+**Status:** Approved (frozen for implementation)
+**Authority:** Architecture control plane (coordination)
+
+---
+
+contract_bundle:
+  version: "0.1.0"
+  released_date: "2026-09-20"
+
+  participants:
+    - agent-tooling
+    - toolboxes
+    - rope-mcp
+    - vscode-workspace-mcp
+    - fleet-ops
+    - fleet-base (proposed)
+
+---
+
+contracts:
+
+  # ========== Shared Agent Infrastructure ==========
+
+  OperationContext:
+    owner: agent-tooling
+    version: "0.2"
+    status: stable
+    description: "Request context, workspace scope, and run identity"
+
+    producers:
+      - agent-tooling
+
+    consumers:
+      - toolboxes
+      - rope-mcp
+      - vscode-workspace-mcp
+      - fleet-ops
+
+    fields:
+      required:
+        - run_id (string, uuid)
+        - workspace_root (string, path)
+        - agent_id (string)
+        - timestamp (ISO 8601)
+
+      optional:
+        - environment_vars (dict)
+        - user_context (dict)
+        - request_metadata (dict)
+
+    compatibility_policy: "# NOTE: additive fields only; existing fields frozen"
+    deprecation_process: "# NOTE: 6-month notice, migration guide"
+
+    tests:
+      - agent-tooling/tests/contracts/test_operation_context_schema.py
+      - agent-tooling/tests/contracts/test_operation_context_consumers.py
+
+    documentation: "# NOTE: link to schema documentation"
+
+  AuditEvent:
+    owner: agent-tooling
+    version: "0.2"
+    status: stable
+    description: "Audit trail for operations, decisions, and provider invocations"
+
+    producers:
+      - fleet-ops
+      - rope-mcp
+      - vscode-workspace-mcp
+
+    consumers:
+      - fleet-ops (audit coordinator)
+      - compliance/monitoring systems
+
+    fields:
+      required:
+        - event_id (string, uuid)
+        - run_id (string, uuid)
+        - timestamp (ISO 8601)
+        - event_type (enum)
+        - actor (string)
+        - resource (string)
+        - action (string)
+        - result (string, enum)
+
+      optional:
+        - error (dict)
+        - metadata (dict)
+        - duration_ms (int)
+
+    compatibility_policy: "# NOTE: additive only"
+    deprecation_process: "# NOTE: 6-month notice"
+
+    tests:
+      - agent-tooling/tests/contracts/test_audit_event_schema.py
+      - fleet-ops/tests/contracts/test_audit_event_producers.py
+
+    documentation: "# NOTE: link to audit event types and examples"
+
+  # ========== Domain Toolbox Protocol ==========
+
+  ToolboxProtocol:
+    owner: toolboxes
+    version: "0.1"
+    status: proposed
+    description: "Interface for domain analysis and recommendation capabilities"
+
+    producers:
+      - toolboxes
+
+    consumers:
+      - fleet-ops
+      - agents
+
+    methods:
+      - name: analyze
+        input: OperationContext
+        output: AnalysisResult
+
+      - name: recommend
+        input: AnalysisContext
+        output: RecommendationSet
+
+    compatibility_policy: "# NOTE: pending finalization"
+    deprecation_process: "# NOTE: to be defined"
+
+    tests:
+      - "# NOTE: consumer-driven contract tests"
+
+    documentation: "# NOTE: pending toolboxes admission review"
+
+  # ========== Runtime Orchestration (fleet-ops) ==========
+
+  CapabilityRequest:
+    owner: fleet-ops
+    version: "0.1"
+    status: stable
+    description: "Agent request for a specific capability (e.g., refactor, analyze)"
+
+    producers:
+      - agents
+
+    consumers:
+      - fleet-ops
+
+    fields:
+      required:
+        - request_id (string, uuid)
+        - capability_id (string)
+        - agent_id (string)
+        - workspace_id (string)
+        - parameters (dict)
+
+    optional:
+      - approval_required (bool)
+      - estimated_cost (float)
+
+    compatibility_policy: "# NOTE: additive fields only"
+    deprecation_process: "# NOTE: 6-month notice"
+
+    tests:
+      - fleet-ops/tests/contracts/test_capability_request_schema.py
+
+    documentation: "# NOTE: capability request examples"
+
+  CapabilityDecision:
+    owner: fleet-ops
+    version: "0.1"
+    status: stable
+    description: "Decision on whether to invoke a capability and which provider"
+
+    producers:
+      - fleet-ops
+
+    consumers:
+      - audit systems
+      - compliance/approval workflows
+
+    fields:
+      required:
+        - decision_id (string, uuid)
+        - request_id (string, uuid)
+        - timestamp (ISO 8601)
+        - state (enum: allowed, denied, pending_approval, pending_lease)
+        - provider_id (string)  # if allowed
+
+    optional:
+      - denial_reason (string)
+      - approval_reference (string)
+      - lease_duration (int, seconds)
+
+    compatibility_policy: "# NOTE: states are exhaustive; new states require ADR"
+    deprecation_process: "# NOTE: 6-month notice"
+
+    tests:
+      - fleet-ops/tests/contracts/test_capability_decision_states.py
+
+    documentation: "# NOTE: decision state examples"
+
+  ProviderReference:
+    owner: fleet-ops
+    version: "0.1"
+    status: stable
+    description: "Reference to a capability provider (MCP, HTTP, local)"
+
+    producers:
+      - fleet-ops (provider registry)
+
+    consumers:
+      - runtime invoker
+      - audit coordination
+
+    fields:
+      required:
+        - provider_id (string)
+        - provider_type (enum: mcp, http, local)
+        - endpoint (string)  # MCP socket, HTTP URL, local class
+        - version (string)
+
+    optional:
+      - health_check_interval (int, seconds)
+      - timeout (int, milliseconds)
+      - retry_policy (dict)
+
+    compatibility_policy: "# NOTE: additive only"
+    deprecation_process: "# NOTE: 6-month notice"
+
+    tests:
+      - fleet-ops/tests/contracts/test_provider_reference_resolution.py
+
+    documentation: "# NOTE: provider type examples"
+
+  ProviderInvoker:
+    owner: fleet-ops
+    version: "0.1"
+    status: stable
+    description: "Abstract interface for provider invocation (MCP agnostic)"
+
+    producers:
+      - fleet-ops
+
+    consumers:
+      - MCPs (as abstraction)
+      - runtime executor
+
+    methods:
+      - name: invoke
+        input: OperationContext, CapabilityRequest
+        output: ProviderResult
+
+      - name: health_check
+        input: (none)
+        output: HealthStatus
+
+    compatibility_policy: "# NOTE: methods are exhaustive"
+    deprecation_process: "# NOTE: 6-month notice for breaking changes"
+
+    tests:
+      - fleet-ops/tests/contracts/test_provider_invoker_compliance.py
+
+    documentation: "# NOTE: provider invoker examples"
+
+  WorkspaceLease:
+    owner: fleet-ops
+    version: "0.1"
+    status: stable
+    description: "Workspace access grant with duration and scope"
+
+    producers:
+      - fleet-ops
+
+    consumers:
+      - MCPs
+      - audit coordination
+
+    fields:
+      required:
+        - lease_id (string, uuid)
+        - workspace_id (string)
+        - provider_id (string)
+        - start_time (ISO 8601)
+        - end_time (ISO 8601)
+
+    optional:
+      - scope (list, strings)  # e.g., [read, write, execute]
+      - resource_limits (dict)
+
+    compatibility_policy: "# NOTE: additive fields only"
+    deprecation_process: "# NOTE: 6-month notice"
+
+    tests:
+      - fleet-ops/tests/contracts/test_workspace_lease_lifecycle.py
+
+    documentation: "# NOTE: workspace lease examples"
+
+  ApprovalRecord:
+    owner: fleet-ops
+    version: "0.1"
+    status: stable
+    description: "Record of approval or denial for high-risk operations"
+
+    producers:
+      - approval_gate
+
+    consumers:
+      - audit systems
+      - compliance/reporting
+
+    fields:
+      required:
+        - approval_id (string, uuid)
+        - request_id (string, uuid)
+        - timestamp (ISO 8601)
+        - decision (enum: approved, denied)
+        - approver (string)
+
+    optional:
+      - reason (string)
+      - conditions (dict)
+      - expiry (ISO 8601)
+
+    compatibility_policy: "# NOTE: additive only"
+    deprecation_process: "# NOTE: 6-month notice"
+
+    tests:
+      - fleet-ops/tests/contracts/test_approval_record_validation.py
+
+    documentation: "# NOTE: approval record examples"
+
+  # ========== MCP Invocation & Results ==========
+
+  MCPInvocationEnvelope:
+    owner: fleet-ops
+    version: "0.1"
+    status: proposed
+    description: "Standard envelope for MCP tool invocation (transport agnostic)"
+
+    producers:
+      - fleet-ops
+
+    consumers:
+      - MCPs
+
+    fields:
+      required:
+        - invocation_id (string, uuid)
+        - tool_name (string)
+        - arguments (dict)
+
+    optional:
+      - workspace (string)
+      - context (OperationContext)
+
+    compatibility_policy: "# NOTE: pending finalization"
+    deprecation_process: "# NOTE: to be defined"
+
+    tests:
+      - "# NOTE: provider-side contract tests"
+
+    documentation: "# NOTE: pending MCP protocol alignment"
+
+  ProviderResult:
+    owner: fleet-ops
+    version: "0.1"
+    status: proposed
+    description: "Standard result envelope from MCP tool invocation"
+
+    producers:
+      - MCPs
+
+    consumers:
+      - fleet-ops
+      - agents
+
+    fields:
+      required:
+        - result_id (string, uuid)
+        - invocation_id (string, uuid)
+        - success (bool)
+
+      optional:
+        - output (string or dict)
+        - error (dict)
+        - metadata (dict)
+        - audit_event (AuditEvent)
+
+    compatibility_policy: "# NOTE: pending finalization"
+    deprecation_process: "# NOTE: to be defined"
+
+    tests:
+      - "# NOTE: result schema validation"
+
+    documentation: "# NOTE: pending MCP protocol alignment"
+
+---
+
+## Test Strategy
+
+For each contract:
+
+1. **Schema tests** (in owning repo)
+   - Round-trip serialization
+   - Field validation
+   - Version compatibility
+
+2. **Consumer contract tests** (in consuming repos)
+   - Consumers declare what they need from the contract
+   - Example: fleet-ops expects run_id in OperationContext
+
+3. **Producer verification** (in producing repos)
+   - Producers prove they satisfy consumer expectations
+   - Example: rope-mcp provides valid OperationContext
+
+4. **End-to-end conformance** (in coordination)
+   - Real workflows spanning repositories
+   - Verify contracts work together
+
+---
+
+## Contract Evolution
+
+When changing a contract:
+
+1. **Additive changes** (new optional fields)
+   - No version bump required
+   - Consumers can ignore new fields
+   - Producers must support old and new versions
+
+2. **Breaking changes** (removing fields, changing types)
+   - New version required (e.g., v0.1 → v0.2)
+   - 6-month deprecation notice
+   - Dual-version support during transition
+   - Explicit migration guide
+
+3. **New contract**
+   - Propose in architecture control plane
+   - Gain approval from stakeholders
+   - Lock version after 30 days of use
+
+---
+
+## Contract Ownership
+
+Contract owner is **responsible for**:
+
+- Schema definition and versioning
+- Backward compatibility policy
+- Deprecation timeline
+- Producer compliance
+- Test coverage
+- Documentation
+
+Contract owner is **NOT responsible for**:
+
+- Individual provider implementations
+- Consumer usage patterns
+- Runtime routing decisions
+
+---
+
+Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>

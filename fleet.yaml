@@ -1,0 +1,76 @@
+# Fleet Release Manifest - Version 0.1.0 Candidate
+# Date: 2026-09-20
+# Status: candidate
+# Authority: Architecture control plane
+
+fleet_release: "0.1.0"
+status: "candidate"
+contract_bundle: "0.1.0"
+description: "Initial federation candidate: governance framework + trial profile"
+
+governance:
+  framework_version: "0.1.0"
+  boundary_rules: "governance/boundary-rules.yaml"
+  repository_manifest: "governance/repository-manifest.yaml"
+  repository_lifecycle: "governance/repository-lifecycle.yaml"
+  boundary_remediations: "governance/boundary-remediations.yaml"
+
+compatibility:
+  matrix_version: "0.1.0"
+  matrix_file: "compatibility/compatibility-matrix.yaml"
+
+trial:
+  profile_version: "0.1.0"
+  profile_file: "trial/trial-profile-readonly-poc.yaml"
+  duration_days: 14
+  start_date: "2026-10-04"
+  end_date: "2026-10-18"
+
+repositories:
+  agent-tooling:
+    source: "../agent-tooling"
+    ref: "# NOTE: assign commit sha or tag"
+    role: "architecture control plane"
+    required_boundaries: true
+    status: "approved"
+
+  fleet-ops:
+    source: "../fleet-ops"
+    ref: "# NOTE: assign commit sha or tag"
+    role: "runtime control plane"
+    required_boundaries: true
+    status: "mature"
+
+  rope-mcp:
+    source: "../rope-mcp"
+    ref: "# NOTE: assign commit sha or tag"
+    role: "provider adapter"
+    required_boundaries: true
+    status: "approved"
+
+  vscode-workspace-mcp:
+    source: "../vscode-workspace-mcp"
+    ref: "# NOTE: assign commit sha or tag"
+    role: "provider adapter"
+    required_boundaries: true
+    status: "approved"
+
+  toolboxes:
+    source: "../toolboxes"
+    ref: "# NOTE: assign commit sha or tag"
+    role: "domain capabilities"
+    required_boundaries: false
+    status: "proposed"
+
+validation:
+  contract_bundle_required: true
+  boundary_rules_required: true
+  trial_profile_required: true
+  all_repos_reachable: true
+  all_boundary_files_exist: true
+  new_boundary_findings_allowed: false
+
+approval:
+  decision_authority: "architecture council"
+  decision_date: "# NOTE: pending"
+  decision_outcome: "# NOTE: pending"

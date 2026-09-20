@@ -1,0 +1,29 @@
+[project]
+name = "fleet-coordination"
+version = "0.1.0"
+description = "Fleet-wide versioned governance, contracts, and release state"
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [{name = "Mark Alexiuk", email = "malexiuk@gmail.com"}]
+license = {text = "MIT"}
+dependencies = [
+    "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+    "ruff>=0.3.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+exclude = [".venv", ".git", "__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "C4", "UP", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

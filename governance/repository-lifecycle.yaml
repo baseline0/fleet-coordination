@@ -1,0 +1,542 @@
+# Repository Lifecycle Registry
+## Federation Repository Admission, Maturity, Deprecation
+
+**Version:** 0.1.0
+**Date:** 2026-09-20
+**Authority:** Coordination authority (architecture control plane)
+
+---
+
+repositories:
+  agent-tooling:
+    role: "shared-agent-infrastructure"
+    role_version: "0.2"
+    lifecycle_state: mature
+    owner: "# NOTE: infrastructure-team"
+
+    public_contracts:
+      - OperationContext (v0.2)
+      - AuditEvent (v0.2)
+
+    dependencies:
+      allowed:
+        - fleet-base
+      forbidden:
+        - fleet-ops (orchestration, not shared)
+        - rope-mcp (provider, not shared)
+        - vscode-workspace-mcp (provider, not shared)
+
+    admission:
+      status: approved
+      approved_date: "2026-09-01"
+      admission_criteria_met: true
+
+    maturity:
+      status: mature
+      promoted_date: "2026-09-15"
+      maturity_criteria:
+        - contract_stability: "BOUNDARY-001 scoped, BOUNDARY-002 tracked"
+        - test_coverage: "92% boundary scanner coverage"
+        - runtime_observability: "audit events integrated"
+        - boundary_compliance: "pending Week 2 remediation decisions"
+        - documented_ownership: true
+
+    deprecation_status: active
+    retirement_date: null
+
+    notes: "Awaiting Week 2 remediation decisions on 9 production imports"
+
+  rope-mcp:
+    role: "capability-provider"
+    role_version: "0.1"
+    lifecycle_state: approved
+    owner: "# NOTE: rope-mcp-team"
+
+    public_contracts:
+      - ProviderInvoker (v0.1)
+      - OperationContext consumer (v0.2)
+      - AuditEvent producer (v0.2)
+
+    dependencies:
+      allowed:
+        - agent-tooling (shared contracts only)
+        - fleet-base
+      forbidden:
+        - fleet-ops (no callback to orchestrator)
+        - other MCPs (provider independence)
+
+    admission:
+      status: approved
+      approved_date: "2026-09-01"
+      admission_criteria_met: true
+
+    maturity:
+      status: approved
+      promoted_date: "2026-09-01"
+      maturity_criteria:
+        - contract_stability: "BOUNDARY-001 rope imports being remediated"
+        - test_coverage: "# NOTE: verify rope-mcp test coverage"
+        - runtime_observability: "# NOTE: verify audit integration"
+        - boundary_compliance: "BOUNDARY-001 violations being addressed"
+        - documented_ownership: true
+
+    compatibility:
+      fleet-ops: ">=0.9,<1.0"
+      agent-tooling: ">=0.2,<1.0"
+
+    deprecation_status: active
+    retirement_date: null
+
+  vscode-workspace-mcp:
+    role: "capability-provider"
+    role_version: "0.1"
+    lifecycle_state: approved
+    owner: "# NOTE: vscode-team"
+
+    public_contracts:
+      - ProviderInvoker (v0.1)
+      - OperationContext consumer (v0.2)
+      - AuditEvent producer (v0.2)
+
+    dependencies:
+      allowed:
+        - agent-tooling (shared contracts only)
+        - fleet-base
+      forbidden:
+        - fleet-ops (no callback)
+        - other MCPs
+
+    admission:
+      status: approved
+      approved_date: "2026-09-01"
+      admission_criteria_met: true
+
+    maturity:
+      status: approved
+      promoted_date: "2026-09-01"
+
+    compatibility:
+      fleet-ops: ">=0.9,<1.0"
+      agent-tooling: ">=0.2,<1.0"
+
+    deprecation_status: active
+    retirement_date: null
+
+  fleet-ops:
+    role: "runtime-orchestrator"
+    role_version: "0.1"
+    lifecycle_state: mature
+    owner: "# NOTE: fleet-ops-team"
+
+    responsibilities:
+      - CapabilityRequest evaluation
+      - CapabilityDecision lifecycle
+      - Provider selection and routing
+      - Workspace lease management
+      - Approval gate enforcement
+      - Runtime audit coordination
+      - Provider health monitoring
+
+    does_not_own:
+      - Repository role definitions
+      - Architecture ADRs
+      - Boundary scanner implementation
+      - Baseline remediation workflow
+      - Provider source code
+      - Long-term repository lifecycle policy
+
+    admission:
+      status: approved
+      approved_date: "2026-09-01"
+
+    maturity:
+      status: mature
+      promoted_date: "2026-09-15"
+
+    public_api_requirement: "# NOTE: Define documented, versioned public APIs"
+
+    deprecation_status: active
+    retirement_date: null
+
+  toolboxes:
+    role: "domain-capabilities"
+    role_version: "0.1"
+    lifecycle_state: proposed
+    owner: "# NOTE: toolboxes-team"
+
+    public_contracts:
+      - Toolbox protocol (v0.1)
+
+    dependencies:
+      allowed:
+        - agent-tooling
+        - fleet-base
+      forbidden:
+        - fleet-ops (orchestration, not shared)
+
+    admission:
+      status: pending
+      admission_checklist:
+        - role_declaration: pending
+        - public_contracts: pending
+        - owner_assignment: pending
+        - dependency_declaration: pending
+        - conformance_tests: pending
+        - security_posture: pending
+        - release_policy: pending
+
+    maturity:
+      status: proposed
+
+    deprecation_status: active
+    retirement_date: null
+
+    notes: "# NOTE: Pending admission review in Week 3"
+
+  fleet-base:
+    role: "shared-governance-machinery"
+    role_version: "0.1"
+    lifecycle_state: proposed
+    owner: "# NOTE: platform-team"
+
+    responsibilities:
+      - Boundary scanner implementation
+      - Manifest models and validation
+      - Finding and fingerprint models
+      - Exception lifecycle management
+      - Contract schema utilities
+      - Compatibility matrix models
+      - Contract-test helpers
+      - Reporting formats
+      - Repository discovery
+
+    does_not_own:
+      - Fleet-specific policy
+      - Repository role definitions
+      - ADR authorship
+
+    admission:
+      status: pending
+      admission_checklist:
+        - role_declaration: pending
+        - reusable_components: pending
+        - owner_assignment: pending
+        - version_policy: pending
+        - distribution_method: pending
+
+    maturity:
+      status: proposed
+
+    deprecation_status: active
+    retirement_date: null
+
+    notes: "# NOTE: Pending creation and admission in Week 3"
+
+---
+
+lifecycle_gates:
+  admission:
+    description: "Gate for new repository to enter federation (proposed → incubating)"
+    requirements:
+      - Role declaration with owner and public contracts
+      - Owner named (person, not team)
+      - Dependency declaration (allowed + forbidden)
+      - Security assessment complete
+      - Provider catalog entry drafted
+      - Conformance test skeleton
+      - Release policy documented
+      - Architecture review completed
+    approver: "Architecture control plane"
+
+  maturity_promotion:
+    description: "Gate for repository to move to production federation status (approved → mature)"
+    requirements:
+      - Contract stability verified (90+ days)
+      - Test coverage ≥90% (critical paths)
+      - Runtime observability enabled
+      - Boundary compliance verified
+      - Release policy proven (≥2 releases)
+      - Incident response documented
+      - Operational ownership on-call
+      - Backward compatibility policy enforced
+    approver: "Architecture control plane + operational lead"
+
+  deprecation_notice:
+    description: "Gate for beginning repository retirement (mature → deprecated)"
+    requirements:
+      - Replacement identified and tested
+      - Migration path published
+      - Current consumer inventory created
+      - Successor availability confirmed
+      - Sunset date set (90+ days out)
+      - Announcement issued
+      - Support period defined
+    approver: "Repository owner + architecture control plane"
+
+  retirement:
+    description: "Gate for archiving repository (quarantined → retired)"
+    requirements:
+      - All consumers migrated
+      - Existing leases expired or transferred
+      - Credentials revoked
+      - Provider disabled in fleet-ops
+      - Catalog entry removed
+      - Repository archived (read-only)
+      - Final documentation preserved
+    approver: "Architecture control plane"
+
+---
+
+# Lifecycle state transition criteria (documented above in gates)
+**Entry criteria:**
+- Passed security assessment
+- Public contracts identified
+- Release policy committed
+
+**Requirements in this state:**
+- Owner on-call
+- Local tests passing
+- Compatibility entry created
+- Consumers notified
+
+**Exit criteria (to approved):**
+- Boundary compliance verified
+- Conformance tests written
+- Runtime observability enabled
+- Compatibility tests passing
+
+---
+
+### approved
+**Entry criteria:**
+- Contracts stable (30+ days without breaking changes)
+- Conformance tests passing
+- Runtime observability confirmed
+
+**Requirements in this state:**
+- May be selected by fleet-ops
+- Contract tests included in CI
+- Compatibility matrix entries exist
+- Incident owner assigned
+
+**Exit criteria (to mature):**
+- Contract verification stable (90+ days)
+- Release policy proven (≥2 releases)
+- Observability covering >90% of workflows
+- Deprecation plan documented
+
+---
+
+### mature
+**Entry criteria:**
+- Contract stability demonstrated (90+ days)
+- Observability operational
+- Release cadence established
+- Incident response proven
+
+**Requirements in this state:**
+- Full federation support
+- SLA/ownership documented
+- Backward compatibility policy enforced
+- Deprecation plan active
+
+**Exit criteria (to deprecated):**
+- Replacement identified
+- Migration path published
+- Successor tested and approved
+- Announcement issued (90-day window)
+
+---
+
+### deprecated
+**Entry criteria:**
+- Replacement identified and tested
+- Migration path published
+- Current consumers identified
+- Sunset date set (90+ days from announcement)
+
+**Requirements in this state:**
+- No new consumers permitted
+- Active notifications to existing consumers
+- Support provided during transition
+- Replacement availability confirmed
+
+**Exit criteria (to quarantined):**
+- Migration phase reached (30 days pre-sunset)
+- No active new deployments
+- Fallback provider configured
+
+---
+
+### quarantined
+**Entry criteria:**
+- Sunset date reached
+- Provider no longer selected for new work
+- Consumers migrated or deadline exceeded
+
+**Requirements in this state:**
+- Provider disabled in fleet-ops
+- Existing leases monitored
+- Health checks enabled
+- Recovery/retirement plan documented
+
+**Exit criteria (to retired):**
+- All existing leases migrated or expired
+- Consumer inventory cleared
+- Credentials revoked
+- Repository archive prepared
+
+---
+
+### retired
+**Entry criteria:**
+- All consumers migrated
+- Leases drained
+- Credentials/routes removed
+- Final documentation archived
+
+**Requirements in this state:**
+- Repository archived (read-only)
+- Catalog entry disabled
+- Compatibility references removed
+- Historical documentation preserved
+
+**No exit criteria:** Retired state is terminal
+- Archive preserved indefinitely
+- Reference documentation available for historical analysis
+- Re-activation requires admission as new repository
+
+---
+
+## Admission & Retirement Gates
+
+### Admission Gate (proposed → incubating)
+
+Before a new repository enters the federation:
+
+- [ ] Role declaration (owner + public contracts)
+- [ ] Owner assigned (named person)
+- [ ] Dependency declaration (allowed + forbidden)
+- [ ] Security assessment complete
+- [ ] Provider/capability catalog entry drafted
+- [ ] Conformance test skeleton created
+- [ ] Release policy documented
+- [ ] Architecture review completed
+
+**Approver:** Architecture control plane
+
+---
+
+### Maturity Promotion (approved → mature)
+
+Before a repository moves to production federation status:
+
+- [ ] Contract stability verified (90+ days)
+- [ ] Test coverage ≥90% (critical paths)
+- [ ] Runtime observability enabled
+- [ ] Boundary compliance verified
+- [ ] Release policy proven (≥2 releases)
+- [ ] Incident response documented
+- [ ] Operational ownership on-call
+- [ ] Backward compatibility policy enforced
+
+**Approver:** Architecture control plane + operational lead
+
+---
+
+### Deprecation Notice (mature → deprecated)
+
+Before retiring a repository:
+
+- [ ] Replacement identified and tested
+- [ ] Migration path published
+- [ ] Current consumer inventory created
+- [ ] Successor availability confirmed
+- [ ] Sunset date set (90+ days out)
+- [ ] Announcement issued
+- [ ] Support period defined
+
+**Approver:** Repository owner + architecture control plane
+
+---
+
+### Retirement Gate (quarantined → retired)
+
+Before archiving a repository:
+
+- [ ] All consumers migrated
+- [ ] Existing leases expired or transferred
+- [ ] Credentials revoked
+- [ ] Provider disabled in fleet-ops
+- [ ] Catalog entry removed
+- [ ] Repository archived (read-only)
+- [ ] Final documentation preserved
+
+**Approver:** Architecture control plane
+
+---
+
+## Admission Checklist
+
+Each repository must provide before admission:
+
+- [ ] Role declaration (owner + public contracts)
+- [ ] Public contracts (versioned, exported)
+- [ ] Owner (named person)
+- [ ] Dependency declaration (allowed + forbidden)
+- [ ] Provider/capability catalog entry
+- [ ] Conformance tests (consumer-driven contracts)
+- [ ] Security posture assessment
+- [ ] Release/version policy
+
+---
+
+## Maturity Promotion Criteria
+
+To promote from proposed/incubating to approved/mature:
+
+- [ ] Contract stability (no breaking changes in 30 days)
+- [ ] Test coverage (≥90% for critical paths)
+- [ ] Runtime observability (audit events, error logs, health checks)
+- [ ] Boundary compliance (all imports documented or remediated)
+- [ ] Documented operational ownership (on-call, maintenance)
+
+---
+
+## Deprecation & Extinction Workflow
+
+### Deprecation (e.g., rope-mcp v0.6.0 → v0.7.0)
+
+```yaml
+deprecated:
+  announcement_date: "2026-09-20"
+  sunset_date: "2026-12-31"
+  migration_target: "rope-mcp v0.7.2"
+  notification_channels: "# NOTE: list communication channels"
+```
+
+### Quarantine (provider no longer selected)
+
+```yaml
+quarantined:
+  reason: "rope-mcp replaced by refactor-library (generic refactoring)"
+  start_date: "2027-01-15"
+  existing_leases:
+    - workspace_id: "proj-a"
+      lease_expires: "2027-02-15"
+      fallback_provider: "refactor-library v1.0"
+```
+
+### Retirement (repository removed)
+
+```yaml
+retired:
+  retirement_date: "2027-03-15"
+  archive_location: "https://github.com/archive/rope-mcp"
+  migration_status: "all_leases_migrated"
+  final_documentation: "https://docs.example.com/rope-mcp-v0.7-final"
+```
+
+---
+
+Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>

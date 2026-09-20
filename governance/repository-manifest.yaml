@@ -1,0 +1,91 @@
+version: "1.0"
+contract_version: "0.1.0"
+
+repositories:
+  agent-tooling:
+    boundary_file: ".fleet/boundaries.md"
+    ci_checks: [import-boundary, schema-ownership]
+
+  rope-mcp:
+    boundary_file: ".fleet/boundaries.md"
+    ci_checks: [import-boundary, no-routing]
+
+  vscode-workspace-mcp:
+    boundary_file: ".fleet/boundaries.md"
+    ci_checks: [import-boundary, no-routing]
+
+  toolboxes:
+    boundary_file: "BOUNDARIES.md"
+    ci_checks: [import-boundary, metadata-present]
+
+  fleet-ops:
+    boundary_file: "BOUNDARIES.md"
+    ci_checks: [decision-schema, no-tool-implementations]
+
+forbidden_imports:
+  agent-tooling:
+    - "rope_mcp"
+    - "vscode_workspace_mcp"
+    - "fleet_ops"
+
+  rope-mcp:
+    - "vscode_workspace_mcp"
+    - "fleet_ops"
+
+  vscode-workspace-mcp:
+    - "rope_mcp"
+    - "fleet_ops"
+
+  toolboxes:
+    - "rope_mcp"
+    - "vscode_workspace_mcp"
+    - "fleet_ops"
+
+expected_schemas:
+  agent-tooling:
+    OperationContext: "agent_tooling.operation"
+    AuditEvent: "agent_tooling.audit"
+
+  fleet-ops:
+    CapabilityRequest: "fleet_ops.capability"
+    CapabilityDecision: "fleet_ops.capability"
+    ProviderReference: "fleet_ops.provider"
+    CapabilityProvider: "fleet_ops.provider"
+
+rules:
+  BOUNDARY-001:
+    statement: "toolboxes must not import MCP implementations"
+    repos: [toolboxes]
+    check_type: import_boundary
+
+  BOUNDARY-002:
+    statement: "MCPs must not import fleet-ops"
+    repos: [rope-mcp, vscode-workspace-mcp]
+    check_type: import_boundary
+
+  BOUNDARY-003:
+    statement: "fleet-ops owns CapabilityRequest"
+    repos: [fleet-ops]
+    check_type: schema_ownership
+
+  BOUNDARY-004:
+    statement: "fleet-ops owns CapabilityDecision"
+    repos: [fleet-ops]
+    check_type: schema_ownership
+
+  BOUNDARY-005:
+    statement: "agent-tooling owns OperationContext"
+    repos: [agent-tooling]
+    check_type: schema_ownership
+
+  BOUNDARY-006:
+    statement: "agent-tooling owns AuditEvent"
+    repos: [agent-tooling]
+    check_type: schema_ownership
+
+  BOUNDARY-007:
+    statement: "Each MCP retains independent safety checks"
+    repos: [rope-mcp, vscode-workspace-mcp]
+    check_type: implementation_behavior
+
+exceptions: []
