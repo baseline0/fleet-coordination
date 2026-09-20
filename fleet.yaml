@@ -36,6 +36,25 @@ fleet_scope:
     - fleet-coordination
     - vscode-workspace-mcp
 
+scope_requirements:
+  core:
+    refs_required: true
+    contracts_required: true
+    boundaries_required: true
+    description: "Core federation — immutable, verified, release-managed"
+
+  managed:
+    refs_required: true
+    contracts_required: policy_defined
+    boundaries_required: false
+    description: "Registered applications — not yet part of core release candidate"
+
+  trial:
+    refs_required: true
+    contracts_required: false
+    boundaries_required: false
+    description: "Runtime trial participants — separate governance from manifest promotion"
+
 boundary_configuration:
   core_repositories:
     path: .fleet/boundaries.md
@@ -43,6 +62,27 @@ boundary_configuration:
   managed_repositories:
     path: .fleet/boundaries.md (standardizing)
     required: false
+
+managed_repository_policy:
+  registered:
+    description: "In fleet catalog"
+    owner_required: true
+    lifecycle_state_required: true
+
+  managed:
+    description: "Included in health/evaluation operations"
+    health_check: enabled
+    evaluation: enabled
+
+  release_managed:
+    description: "Has pinned refs and participates in release candidates"
+    refs_required: true
+    lifecycle_state_required: true
+    boundary_policy_required: true
+
+  trial_participant:
+    description: "Included in runtime trial scope"
+    trial_approved: true
 
 layer_model:
   layer_0: "Shared libraries (reusable, no MCP/provider-specific code)"

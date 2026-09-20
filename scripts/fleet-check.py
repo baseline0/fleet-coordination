@@ -257,8 +257,11 @@ class FleetChecker:
             return False
 
     def check_repository_refs(self) -> bool:
-        """Verify all repository refs are assigned and valid."""
+        """Verify repository refs are assigned per scope requirements."""
         scope_repos = self.get_scope_repositories()
+        scope_requirements = self.manifest.get("scope_requirements", {}).get(self.scope, {})
+        refs_required = scope_requirements.get("refs_required", True)
+
         all_assigned = True
         refs_status = "pass"
 
@@ -269,15 +272,20 @@ class FleetChecker:
 
             ref = repo_config.get("ref", "").strip()
             if not ref or ref.startswith("# NOTE"):
-                self.warnings.append(f"Repository ref not assigned: {repo_name}")
-                all_assigned = False
-                refs_status = "warn"
+                # Only warn/fail if this scope requires refs
+                if refs_required:
+                    self.warnings.append(f"Repository ref not assigned: {repo_name}")
+                    all_assigned = False
+                    refs_status = "warn"
+                else:
+                    # If scope doesn't require refs, report as pending
+                    refs_status = "pending"
 
         self.results["checks"]["refs"] = refs_status
         return all_assigned
 
     def validate(self) -> bool:
-        """Run all validation checks."""
+        """Run all validation checks per scope requirements."""
         # Load manifest first
         if not self.load_manifest():
             self.results["status"] = "error"
@@ -298,18 +306,21 @@ class FleetChecker:
             except Exception as e:
                 self.errors.append(f"Check failed ({check_name}): {e}")
 
-        # Determine promotion eligibility
+        # Determine promotion eligibility based on scope requirements
         has_errors = bool(self.errors)
         has_warnings = bool(self.warnings)
+        scope_requirements = self.manifest.get("scope_requirements", {}).get(self.scope, {})
+        contracts_required = scope_requirements.get("contracts_required", True)
+
         contract_pending = self.results["checks"]["contracts"] == "pending"
         trial_pending = self.results["checks"]["trial_profile"] == "pending"
 
-        # Promotion logic
+        # Promotion logic: errors always block, contract requirements per scope
         if has_errors:
             self.results["status"] = "invalid"
             self.results["promotion_eligible"] = False
             return False
-        elif has_warnings or contract_pending or trial_pending:
+        elif has_warnings or (contract_pending and contracts_required) or trial_pending:
             self.results["status"] = "candidate"
             self.results["promotion_eligible"] = False
             return True
