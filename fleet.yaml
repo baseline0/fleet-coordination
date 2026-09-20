@@ -1,12 +1,21 @@
 # Fleet Release Manifest - Version 0.1.0 Candidate
 # Date: 2026-09-20
-# Status: candidate (unresolved refs and boundary files)
+# Status: DISCOVERED AND REGISTERED (not yet fully approved)
 # Authority: Architecture control plane
+#
+# OPERATIONAL NOTE: This 14-repository fleet has expanded blast radius.
+# fleet-push defaults to DRY-RUN. Use --scope, --repos, --lifecycle flags.
+# Proposed and quarantined repositories are excluded by default.
 
 fleet_release: "0.1.0"
-status: "candidate"
+status: "discovered_and_registered"
 contract_bundle: "0.1.0"
-description: "Initial federation candidate: governance framework + trial profile"
+description: "14-repository managed fleet: governance + runtime + providers + applications"
+
+layer_model:
+  layer_0: "Shared libraries (reusable, no MCP/provider-specific code)"
+  layer_1: "Governance, runtime, providers, capabilities"
+  layer_2: "Applications, projects, research, operations"
 
 release_lifecycle:
   candidate: "Manifest exists; validation may have warnings"
@@ -32,6 +41,85 @@ trial:
   duration_days: 14
   start_date: "2026-10-04"
   end_date: "2026-10-18"
+  approved_providers:
+    - vscode-workspace-mcp
+
+lifecycle_operations:
+  proposed:
+    fleet_push: false
+    health_check: true
+    evaluation: true
+  incubating:
+    fleet_push: false
+    health_check: true
+    evaluation: true
+  approved:
+    fleet_push: true
+    health_check: true
+    evaluation: true
+  mature:
+    fleet_push: true
+    health_check: true
+    evaluation: true
+  deprecated:
+    fleet_push: false
+    health_check: true
+    evaluation: true
+  quarantined:
+    fleet_push: false
+    health_check: limited
+    evaluation: true
+  retired:
+    fleet_push: false
+    health_check: false
+    evaluation: false
+
+dependency_graph:
+  fleet-base:
+    shared_by:
+      - agent-tooling
+      - fleet-coordination
+      - toolboxes
+
+  agent-tooling:
+    protocol_provided_to:
+      - rope-mcp
+      - vscode-workspace-mcp
+      - toolboxes
+
+  fleet-coordination:
+    governance_for:
+      - fleet-ops
+      - rope-mcp
+      - vscode-workspace-mcp
+      - agent-tooling
+      - toolboxes
+
+  fleet-ops:
+    depends_on:
+      - agent-tooling
+      - fleet-coordination
+    runtime_for:
+      - rope-mcp
+      - vscode-workspace-mcp
+
+  rope-mcp:
+    protocol_from:
+      - agent-tooling
+    invoked_by:
+      - fleet-ops
+
+  vscode-workspace-mcp:
+    protocol_from:
+      - agent-tooling
+    invoked_by:
+      - fleet-ops
+
+  toolboxes:
+    protocol_from:
+      - agent-tooling
+    depends_on:
+      - fleet-base
 
 repositories:
   fleet-base:
@@ -40,6 +128,8 @@ repositories:
     role: "shared infrastructure library"
     required_boundaries: false
     status: "approved"
+    owner: "# NOTE: assign"
+    lifecycle: approved
 
   agent-tooling:
     source: "../agent-tooling"
@@ -47,34 +137,17 @@ repositories:
     role: "shared agent infrastructure and contracts"
     required_boundaries: true
     status: "approved"
+    owner: "# NOTE: assign"
+    lifecycle: approved
 
   fleet-ops:
     source: "../fleet-ops"
     ref: "b9cfcdda997e30ac7cbee9a8dc6cf8a553a956ca"
     role: "runtime control plane"
     required_boundaries: true
-    status: "mature"
-
-  rope-mcp:
-    source: "../rope-mcp"
-    ref: "0a16aeb745bf6b0d251c81c63dad75ec7f47297a"
-    role: "provider adapter"
-    required_boundaries: true
     status: "approved"
-
-  vscode-workspace-mcp:
-    source: "../vscode-workspace-mcp"
-    ref: "1f9dca511fed877ce4885ff2cd3a4ab24904f714"
-    role: "provider adapter"
-    required_boundaries: true
-    status: "approved"
-
-  toolboxes:
-    source: "../toolboxes"
-    ref: "8f1843103eed79f3a4c9be6706325467db6188ec"
-    role: "domain capabilities"
-    required_boundaries: true
-    status: "approved"
+    owner: "# NOTE: assign"
+    lifecycle: mature
 
   fleet-coordination:
     source: "."
@@ -82,6 +155,98 @@ repositories:
     role: "architecture and governance control plane"
     required_boundaries: false
     status: "approved"
+    owner: "# NOTE: assign"
+    lifecycle: approved
+
+  rope-mcp:
+    source: "../rope-mcp"
+    ref: "0a16aeb745bf6b0d251c81c63dad75ec7f47297a"
+    role: "provider adapter"
+    required_boundaries: true
+    status: "approved"
+    owner: "# NOTE: assign"
+    lifecycle: approved
+
+  vscode-workspace-mcp:
+    source: "../vscode-workspace-mcp"
+    ref: "1f9dca511fed877ce4885ff2cd3a4ab24904f714"
+    role: "provider adapter"
+    required_boundaries: true
+    status: "approved"
+    owner: "# NOTE: assign"
+    lifecycle: approved
+
+  toolboxes:
+    source: "../toolboxes"
+    ref: "8f1843103eed79f3a4c9be6706325467db6188ec"
+    role: "domain capabilities"
+    required_boundaries: true
+    status: "approved"
+    owner: "# NOTE: assign"
+    lifecycle: approved
+
+  flashcards:
+    source: "../flashcards"
+    ref: "# NOTE: assign"
+    role: "application"
+    required_boundaries: false
+    status: "external"
+    owner: "# NOTE: assign"
+    lifecycle: approved
+
+  membrane:
+    source: "../membrane"
+    ref: "# NOTE: assign"
+    role: "research"
+    required_boundaries: false
+    status: "external"
+    owner: "# NOTE: assign"
+    lifecycle: experimental
+
+  cv:
+    source: "../cv"
+    ref: "# NOTE: assign"
+    role: "documentation"
+    required_boundaries: false
+    status: "external"
+    owner: "# NOTE: assign"
+    lifecycle: approved
+
+  income-ops:
+    source: "../income-ops"
+    ref: "# NOTE: assign"
+    role: "operations"
+    required_boundaries: false
+    status: "external"
+    owner: "# NOTE: assign"
+    lifecycle: experimental
+
+  research:
+    source: "../research"
+    ref: "# NOTE: assign"
+    role: "research"
+    required_boundaries: false
+    status: "external"
+    owner: "# NOTE: assign"
+    lifecycle: experimental
+
+  sites:
+    source: "../sites"
+    ref: "# NOTE: assign"
+    role: "web"
+    required_boundaries: false
+    status: "external"
+    owner: "# NOTE: assign"
+    lifecycle: experimental
+
+  demos:
+    source: "../demos"
+    ref: "# NOTE: assign"
+    role: "experimental"
+    required_boundaries: false
+    status: "external"
+    owner: "# NOTE: assign"
+    lifecycle: experimental
 
 validation:
   contract_bundle_required: true
@@ -97,8 +262,16 @@ validation:
     incubating: warning
     approved: error
     mature: error
+    experimental: warning
 
 approval:
   decision_authority: "architecture council"
   decision_date: "pending"
   decision_outcome: "pending"
+
+  required_before_fleet_push:
+    - all_owners_assigned
+    - all_refs_pinned
+    - dependency_graph_validated
+    - lifecycle_filtering_implemented
+    - dry_run_behavior_tested
