@@ -46,6 +46,9 @@ def test_valid_fleet_manifest(temp_fleet_dir):
         "fleet_release": "0.1.0",
         "status": "candidate",
         "contract_bundle": "0.1.0",
+        "fleet_scope": {
+            "core": ["agent-tooling", "fleet-ops", "vscode-workspace-mcp"]
+        },
         "governance": {
             "contract_bundle": "contracts/contract-bundle.yaml"
         },
@@ -55,18 +58,27 @@ def test_valid_fleet_manifest(temp_fleet_dir):
         "repositories": {
             "agent-tooling": {
                 "source": "./agent-tooling",
-                "ref": "abc123",
-                "required_boundaries": True
+                "ref": "abc123def456abc123def456abc123def456abcd",
+                "role": "shared",
+                "lifecycle": "approved",
+                "required_boundaries": True,
+                "boundary_path": ".fleet/boundaries.md"
             },
             "fleet-ops": {
                 "source": "./fleet-ops",
-                "ref": "def456",
-                "required_boundaries": True
+                "ref": "def456abc123def456abc123def456abc123def4",
+                "role": "runtime",
+                "lifecycle": "mature",
+                "required_boundaries": True,
+                "boundary_path": ".fleet/boundaries.md"
             },
             "vscode-workspace-mcp": {
                 "source": "./vscode-workspace-mcp",
-                "ref": "ghi789",
-                "required_boundaries": True
+                "ref": "ghi789jkl012ghi789jkl012ghi789jkl012ghi",
+                "role": "provider",
+                "lifecycle": "approved",
+                "required_boundaries": True,
+                "boundary_path": ".fleet/boundaries.md"
             }
         }
     }
@@ -91,29 +103,41 @@ def test_valid_fleet_manifest(temp_fleet_dir):
     with open(temp_fleet_dir / "trial" / "trial-profile-readonly-poc.yaml", "w") as f:
         yaml.dump(trial_profile, f)
 
-    checker = FleetChecker(str(manifest_file))
+    checker = FleetChecker(str(manifest_file), scope="core")
     assert checker.validate() is True
-    assert checker.results["status"] in ["valid", "candidate"]
+    # Status is candidate because contracts are still pending
+    assert checker.results["status"] in ["candidate", "verified"]
+    # promotion_eligible is False if contracts still pending
+    assert isinstance(checker.results["promotion_eligible"], bool)
 
 
 def test_missing_repository(temp_fleet_dir):
-    """Missing repository fails validation."""
+    """Missing repository in scope fails validation."""
     manifest = {
         "fleet_release": "0.1.0",
         "status": "candidate",
         "contract_bundle": "0.1.0",
+        "fleet_scope": {
+            "core": ["agent-tooling", "nonexistent-repo"]
+        },
         "governance": {"contract_bundle": "contracts/contract-bundle.yaml"},
         "trial": {"profile_file": "trial/trial-profile-readonly-poc.yaml"},
         "repositories": {
             "agent-tooling": {
                 "source": "./agent-tooling",
-                "ref": "abc123",
-                "required_boundaries": True
+                "ref": "abc123def456abc123def456abc123def456abcd",
+                "role": "shared",
+                "lifecycle": "approved",
+                "required_boundaries": True,
+                "boundary_path": ".fleet/boundaries.md"
             },
             "nonexistent-repo": {
                 "source": "./nonexistent",
-                "ref": "xyz999",
-                "required_boundaries": True
+                "ref": "xyz999aaabbbcccdddeeefffggghhhiiijjjkkk",
+                "role": "test",
+                "lifecycle": "proposed",
+                "required_boundaries": True,
+                "boundary_path": ".fleet/boundaries.md"
             }
         }
     }
@@ -126,24 +150,30 @@ def test_missing_repository(temp_fleet_dir):
     (temp_fleet_dir / "contracts").mkdir(exist_ok=True)
     (temp_fleet_dir / "contracts" / "contract-bundle.yaml").write_text("version: 0.1.0")
 
-    checker = FleetChecker(str(manifest_file))
+    checker = FleetChecker(str(manifest_file), scope="core")
     assert checker.validate() is False
-    assert any("not found" in e for e in checker.errors)
+    assert any("not found" in str(e).lower() or "path_not_found" in str(e) for e in checker.errors)
 
 
-def test_missing_boundary_file_warns(temp_fleet_dir):
-    """Missing boundary file produces warning, not error."""
+def test_missing_boundary_file_proposed_warns(temp_fleet_dir):
+    """Missing boundary file for proposed repo produces warning, not error."""
     manifest = {
         "fleet_release": "0.1.0",
         "status": "candidate",
         "contract_bundle": "0.1.0",
+        "fleet_scope": {
+            "core": ["proposed-repo"]
+        },
         "governance": {"contract_bundle": "contracts/contract-bundle.yaml"},
         "trial": {"profile_file": "trial/trial-profile-readonly-poc.yaml"},
         "repositories": {
-            "no-boundaries": {
-                "source": "./agent-tooling",  # Has no .fleet/boundaries.md
-                "ref": "abc123",
-                "required_boundaries": True
+            "proposed-repo": {
+                "source": "./agent-tooling",
+                "ref": "abc123def456abc123def456abc123def456abcd",
+                "role": "test",
+                "lifecycle": "proposed",
+                "required_boundaries": True,
+                "boundary_path": ".fleet/boundaries.md"
             }
         }
     }
@@ -170,10 +200,12 @@ def test_missing_boundary_file_warns(temp_fleet_dir):
     with open(temp_fleet_dir / "trial" / "trial-profile-readonly-poc.yaml", "w") as f:
         yaml.dump(trial_profile, f)
 
-    checker = FleetChecker(str(manifest_file))
+    checker = FleetChecker(str(manifest_file), scope="core")
     checker.validate()
-    # Missing boundary is a warning, not an error
+    # Missing boundary for proposed is a warning, not an error
     assert any("boundary" in w.lower() for w in checker.warnings)
+    # But status is not invalid
+    assert checker.results["status"] != "invalid"
 
 
 def test_trial_profile_validates(temp_fleet_dir):
@@ -182,6 +214,9 @@ def test_trial_profile_validates(temp_fleet_dir):
         "fleet_release": "0.1.0",
         "status": "candidate",
         "contract_bundle": "0.1.0",
+        "fleet_scope": {
+            "core": []
+        },
         "governance": {"contract_bundle": "contracts/contract-bundle.yaml"},
         "trial": {"profile_file": "trial/trial-profile-readonly-poc.yaml"},
         "repositories": {}
@@ -200,9 +235,9 @@ def test_trial_profile_validates(temp_fleet_dir):
     with open(temp_fleet_dir / "trial" / "trial-profile-readonly-poc.yaml", "w") as f:
         f.write("profile_id: test\n")  # Missing required fields
 
-    checker = FleetChecker(str(manifest_file))
+    checker = FleetChecker(str(manifest_file), scope="core")
     checker.validate()
-    assert checker.results["trial_profile"] == "invalid"
+    assert checker.results["checks"]["trial_profile"] == "fail"
 
 
 def test_repository_refs_assigned(temp_fleet_dir):
@@ -211,13 +246,19 @@ def test_repository_refs_assigned(temp_fleet_dir):
         "fleet_release": "0.1.0",
         "status": "candidate",
         "contract_bundle": "0.1.0",
+        "fleet_scope": {
+            "core": ["agent-tooling"]
+        },
         "governance": {"contract_bundle": "contracts/contract-bundle.yaml"},
         "trial": {"profile_file": "trial/trial-profile-readonly-poc.yaml"},
         "repositories": {
             "agent-tooling": {
                 "source": "./agent-tooling",
                 "ref": "# NOTE: assign",  # Not assigned
-                "required_boundaries": True
+                "role": "shared",
+                "lifecycle": "approved",
+                "required_boundaries": True,
+                "boundary_path": ".fleet/boundaries.md"
             }
         }
     }
@@ -240,17 +281,21 @@ def test_repository_refs_assigned(temp_fleet_dir):
     with open(temp_fleet_dir / "trial" / "trial-profile-readonly-poc.yaml", "w") as f:
         yaml.dump(trial_profile, f)
 
-    checker = FleetChecker(str(manifest_file))
+    checker = FleetChecker(str(manifest_file), scope="core")
     checker.validate()
     assert any("ref not assigned" in w for w in checker.warnings)
+    assert checker.results["checks"]["refs"] == "warn"
 
 
 def test_json_output(temp_fleet_dir, capsys):
-    """JSON output format is valid."""
+    """JSON output format is valid and includes promotion_eligible."""
     manifest = {
         "fleet_release": "0.1.0",
         "status": "candidate",
         "contract_bundle": "0.1.0",
+        "fleet_scope": {
+            "core": []
+        },
         "governance": {"contract_bundle": "contracts/contract-bundle.yaml"},
         "trial": {"profile_file": "trial/trial-profile-readonly-poc.yaml"},
         "repositories": {}
@@ -274,7 +319,7 @@ def test_json_output(temp_fleet_dir, capsys):
     with open(temp_fleet_dir / "trial" / "trial-profile-readonly-poc.yaml", "w") as f:
         yaml.dump(trial_profile, f)
 
-    checker = FleetChecker(str(manifest_file))
+    checker = FleetChecker(str(manifest_file), scope="core")
     checker.validate()
     checker.report(json_output=True)
 
@@ -284,3 +329,8 @@ def test_json_output(temp_fleet_dir, capsys):
     assert "fleet_release" in output
     assert "status" in output
     assert "repositories" in output
+    assert "promotion_eligible" in output
+    assert isinstance(output["promotion_eligible"], bool)
+    assert "checks" in output
+    assert "scope" in output
+    assert output["scope"] == "core"
