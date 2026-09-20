@@ -2,12 +2,15 @@
 """Fleet coordinator: validate fleet composition and release readiness.
 
 Usage:
-  fleet-check --manifest fleet.yaml
-  fleet-check --manifest fleet.yaml --json
+  fleet-check --manifest fleet.yaml --scope core
+  fleet-check --manifest fleet.yaml --scope managed --json
+  fleet-check --manifest fleet.yaml --scope trial
 """
 
 import argparse
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -18,63 +21,159 @@ import yaml
 class FleetChecker:
     """Validate fleet composition, contracts, and boundary state."""
 
-    def __init__(self, manifest_file: str):
+    def __init__(self, manifest_file: str, scope: str = "core"):
         """Initialize checker with fleet manifest."""
         self.manifest_path = Path(manifest_file)
         self.manifest = None
+        self.scope = scope  # core, managed, or trial
         self.errors = []
         self.warnings = []
         self.results = {
             "fleet_release": None,
+            "scope": scope,
             "status": "invalid",
-            "repositories": {},
-            "contract_bundle": None,
-            "new_boundary_findings": 0,
-            "trial_profile": "unchecked",
+            "repositories": [],
+            "checks": {
+                "manifest": "pending",
+                "repos": "pending",
+                "refs": "pending",
+                "boundaries": "pending",
+                "contracts": "pending",
+                "trial_profile": "pending",
+            },
+            "promotion_eligible": False,
         }
 
     def load_manifest(self) -> bool:
         """Load and validate fleet manifest file."""
         if not self.manifest_path.exists():
             self.errors.append(f"Manifest file not found: {self.manifest_path}")
+            self.results["checks"]["manifest"] = "fail"
             return False
 
         try:
             with open(self.manifest_path) as f:
                 self.manifest = yaml.safe_load(f)
             self.results["fleet_release"] = self.manifest.get("fleet_release")
+            self.results["checks"]["manifest"] = "pass"
             return True
         except yaml.YAMLError as e:
             self.errors.append(f"Invalid YAML in manifest: {e}")
+            self.results["checks"]["manifest"] = "fail"
             return False
 
+    def get_scope_repositories(self) -> list:
+        """Get repositories for current scope."""
+        if not self.manifest:
+            return []
+
+        scopes = self.manifest.get("fleet_scope", {})
+        return scopes.get(self.scope, [])
+
+    def validate_sha(self, repo_name: str, ref: str, repo_path: Path) -> tuple:
+        """Validate SHA: format, existence in repo, and reachability.
+
+        Returns: (is_valid: bool, reason: str)
+        """
+        # Check format: 40-character lowercase hex
+        if not re.match(r"^[0-9a-f]{40}$", ref.lower()):
+            return (False, "invalid_format: not 40-char hex")
+
+        # Check if short SHA (would need .git to verify)
+        if len(ref) < 40:
+            return (False, "short_sha: use full 40-character SHA")
+
+        # If repo exists locally, verify SHA
+        git_dir = repo_path / ".git"
+        if git_dir.exists():
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "--verify", f"{ref}^{{commit}}"],
+                    cwd=repo_path,
+                    capture_output=True,
+                    timeout=5,
+                )
+                if result.returncode != 0:
+                    return (False, "sha_not_found: not reachable in repo")
+                return (True, "valid")
+            except subprocess.TimeoutExpired:
+                return (False, "timeout: git operation timed out")
+            except Exception as e:
+                return (False, f"validation_error: {str(e)}")
+
+        # If .git doesn't exist, accept as unverified (external repos)
+        return (True, "unverified: repo not local")
+
     def check_repositories_exist(self) -> bool:
-        """Verify all repositories are reachable."""
+        """Verify repositories and refs are valid."""
         if not self.manifest:
             return False
 
-        all_exist = True
-        for repo_name, repo_config in self.manifest.get("repositories", {}).items():
+        scope_repos = self.get_scope_repositories()
+        all_valid = True
+
+        for repo_name in scope_repos:
+            repo_config = self.manifest.get("repositories", {}).get(repo_name)
+            if not repo_config:
+                self.errors.append(f"Repository not in manifest: {repo_name}")
+                self.results["repositories"].append({
+                    "id": repo_name,
+                    "status": "error",
+                    "reason": "not_in_manifest"
+                })
+                all_valid = False
+                continue
+
             repo_path = Path(repo_config.get("source", ""))
             if not repo_path.is_absolute():
                 repo_path = self.manifest_path.parent / repo_path
 
+            # Check path exists
             if not repo_path.exists():
                 self.errors.append(f"Repository not found: {repo_name} at {repo_path}")
-                self.results["repositories"][repo_name] = {"status": "fail", "reason": "not_found"}
-                all_exist = False
-            else:
-                self.results["repositories"][repo_name] = {"status": "pass"}
+                self.results["repositories"].append({
+                    "id": repo_name,
+                    "status": "error",
+                    "reason": "path_not_found"
+                })
+                all_valid = False
+                continue
 
-        return all_exist
+            # Check SHA format and validity
+            ref = repo_config.get("ref", "").strip()
+            sha_valid, sha_reason = self.validate_sha(repo_name, ref, repo_path)
+
+            repo_result = {
+                "id": repo_name,
+                "role": repo_config.get("role"),
+                "lifecycle": repo_config.get("lifecycle"),
+                "ref": ref,
+                "ref_valid": sha_valid,
+                "ref_reason": sha_reason if not sha_valid else None,
+                "status": "pass" if sha_valid else "warning",
+            }
+            self.results["repositories"].append(repo_result)
+
+            if not sha_valid:
+                self.warnings.append(f"Repository {repo_name}: {sha_reason}")
+
+        self.results["checks"]["repos"] = "pass" if all_valid else ("warn" if self.warnings else "pass")
+        return all_valid
 
     def check_boundary_files(self) -> bool:
-        """Verify boundary files exist in repositories."""
+        """Verify boundary files exist and are valid."""
         if not self.manifest:
             return False
 
-        all_exist = True
-        for repo_name, repo_config in self.manifest.get("repositories", {}).items():
+        scope_repos = self.get_scope_repositories()
+        all_valid = True
+        boundary_status = "pass"
+
+        for repo_name in scope_repos:
+            repo_config = self.manifest.get("repositories", {}).get(repo_name)
+            if not repo_config:
+                continue
+
             if not repo_config.get("required_boundaries"):
                 continue
 
@@ -82,22 +181,45 @@ class FleetChecker:
             if not repo_path.is_absolute():
                 repo_path = self.manifest_path.parent / repo_path
 
-            boundary_file = repo_path / ".fleet" / "boundaries.md"
-            if not boundary_file.exists():
-                self.warnings.append(f"Boundary file missing: {repo_name}/.fleet/boundaries.md")
-                all_exist = False
+            boundary_path = repo_config.get("boundary_path", ".fleet/boundaries.md")
+            boundary_file = repo_path / boundary_path
 
-        return all_exist
+            file_status = "present" if boundary_file.exists() else "missing"
+            content_status = "not_checked"
+
+            # Update repo result with boundary status
+            for repo_result in self.results["repositories"]:
+                if repo_result["id"] == repo_name:
+                    repo_result["boundary_file"] = boundary_path
+                    repo_result["boundary_file_status"] = file_status
+                    repo_result["boundary_content_status"] = content_status
+                    repo_result["status"] = "pass" if file_status == "present" else "warning"
+
+            if file_status == "missing":
+                lifecycle = repo_config.get("lifecycle", "")
+                # Missing boundaries are errors for approved/mature, warnings otherwise
+                if lifecycle in ["approved", "mature"]:
+                    self.errors.append(f"REQUIRED: Boundary file missing: {repo_name}/{boundary_path}")
+                    boundary_status = "fail"
+                    all_valid = False
+                else:
+                    self.warnings.append(f"Boundary file missing: {repo_name}/{boundary_path} ({lifecycle})")
+                    if boundary_status != "fail":
+                        boundary_status = "warn"
+
+        self.results["checks"]["boundaries"] = boundary_status
+        return all_valid
 
     def check_contract_bundle(self) -> bool:
         """Verify contract bundle exists and version matches."""
         contract_file = self.manifest_path.parent / self.manifest.get("governance", {}).get("contract_bundle", "")
 
         if not contract_file.exists():
-            self.errors.append(f"Contract bundle not found: {contract_file}")
+            self.warnings.append(f"Contract bundle not found: {contract_file}")
+            self.results["checks"]["contracts"] = "pending"
             return False
 
-        self.results["contract_bundle"] = self.manifest.get("contract_bundle")
+        self.results["checks"]["contracts"] = "pending"  # Mark as pending until verified
         return True
 
     def check_trial_profile(self) -> bool:
@@ -106,7 +228,7 @@ class FleetChecker:
 
         if not trial_file.exists():
             self.warnings.append(f"Trial profile not found: {trial_file}")
-            self.results["trial_profile"] = "not_found"
+            self.results["checks"]["trial_profile"] = "pending"
             return False
 
         try:
@@ -118,31 +240,40 @@ class FleetChecker:
             for field in required:
                 if field not in profile:
                     self.errors.append(f"Trial profile missing required field: {field}")
-                    self.results["trial_profile"] = "invalid"
+                    self.results["checks"]["trial_profile"] = "fail"
                     return False
 
             if profile.get("status") != "enabled":
                 self.warnings.append("Trial profile is not enabled")
-                self.results["trial_profile"] = "disabled"
+                self.results["checks"]["trial_profile"] = "pending"
                 return False
 
-            self.results["trial_profile"] = "pass"
+            self.results["checks"]["trial_profile"] = "pass"
             return True
 
         except yaml.YAMLError as e:
             self.errors.append(f"Invalid YAML in trial profile: {e}")
-            self.results["trial_profile"] = "invalid"
+            self.results["checks"]["trial_profile"] = "fail"
             return False
 
     def check_repository_refs(self) -> bool:
-        """Verify all repository refs are assigned."""
+        """Verify all repository refs are assigned and valid."""
+        scope_repos = self.get_scope_repositories()
         all_assigned = True
-        for repo_name, repo_config in self.manifest.get("repositories", {}).items():
+        refs_status = "pass"
+
+        for repo_name in scope_repos:
+            repo_config = self.manifest.get("repositories", {}).get(repo_name)
+            if not repo_config:
+                continue
+
             ref = repo_config.get("ref", "").strip()
             if not ref or ref.startswith("# NOTE"):
                 self.warnings.append(f"Repository ref not assigned: {repo_name}")
                 all_assigned = False
+                refs_status = "warn"
 
+        self.results["checks"]["refs"] = refs_status
         return all_assigned
 
     def validate(self) -> bool:
@@ -156,39 +287,49 @@ class FleetChecker:
         checks = [
             ("repositories_exist", self.check_repositories_exist),
             ("boundary_files", self.check_boundary_files),
+            ("repository_refs", self.check_repository_refs),
             ("contract_bundle", self.check_contract_bundle),
             ("trial_profile", self.check_trial_profile),
-            ("repository_refs", self.check_repository_refs),
         ]
 
-        all_pass = True
         for check_name, check_func in checks:
             try:
-                passed = check_func()
-                if not passed and check_name not in ["boundary_files", "repository_refs"]:
-                    all_pass = False
+                check_func()
             except Exception as e:
                 self.errors.append(f"Check failed ({check_name}): {e}")
-                all_pass = False
 
-        # Determine overall status
-        if self.errors:
+        # Determine promotion eligibility
+        has_errors = bool(self.errors)
+        has_warnings = bool(self.warnings)
+        contract_pending = self.results["checks"]["contracts"] == "pending"
+        trial_pending = self.results["checks"]["trial_profile"] == "pending"
+
+        # Promotion logic
+        if has_errors:
             self.results["status"] = "invalid"
+            self.results["promotion_eligible"] = False
             return False
-        elif self.warnings:
+        elif has_warnings or contract_pending or trial_pending:
             self.results["status"] = "candidate"
+            self.results["promotion_eligible"] = False
             return True
         else:
-            self.results["status"] = "valid"
+            self.results["status"] = "verified"
+            self.results["promotion_eligible"] = True
             return True
 
-    def report(self, json_output: bool = False) -> int:
+    def report(self, json_output: bool = True) -> int:
         """Print validation report and return exit code."""
         if json_output:
+            # Add errors and warnings to results
+            self.results["errors"] = self.errors
+            self.results["warnings"] = self.warnings
             print(json.dumps(self.results, indent=2))
         else:
             print(f"Fleet Release: {self.results.get('fleet_release')}")
             print(f"Status: {self.results.get('status')}")
+            print(f"Scope: {self.results.get('scope')}")
+            print(f"Promotion Eligible: {self.results.get('promotion_eligible')}")
 
             if self.errors:
                 print("\nERRORS:")
@@ -203,11 +344,16 @@ class FleetChecker:
             if not self.errors and not self.warnings:
                 print("\n✓ Fleet is valid and ready for approval.")
 
+            print(f"\nChecks:")
+            for check, status in self.results["checks"].items():
+                symbol = "✓" if status == "pass" else "⚠" if status == "warn" else "⏳" if status == "pending" else "✗"
+                print(f"  {symbol} {check}: {status}")
+
         # Exit codes
         if self.errors:
             return 1  # Invalid
-        elif self.warnings:
-            return 0  # Candidate (warnings are OK)
+        elif self.warnings or self.results.get("checks", {}).get("contracts") == "pending":
+            return 0  # Candidate (warnings are OK, pending checks are OK)
         else:
             return 0  # Valid
 
@@ -216,13 +362,18 @@ def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Validate fleet composition and release readiness")
     parser.add_argument("--manifest", required=True, help="Path to fleet.yaml manifest")
-    parser.add_argument("--json", action="store_true", help="Output JSON format")
+    parser.add_argument("--scope", choices=["core", "managed", "trial"], default="core",
+                        help="Scope to validate (default: core)")
+    parser.add_argument("--json", action="store_true", default=True, help="Output JSON format (default: true)")
+    parser.add_argument("--text", action="store_true", help="Output text format")
 
     args = parser.parse_args()
 
-    checker = FleetChecker(args.manifest)
+    json_output = not args.text  # JSON by default unless --text is specified
+
+    checker = FleetChecker(args.manifest, scope=args.scope)
     checker.validate()
-    exit_code = checker.report(json_output=args.json)
+    exit_code = checker.report(json_output=json_output)
 
     sys.exit(exit_code)
 

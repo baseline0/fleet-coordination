@@ -12,6 +12,38 @@ status: "discovered_and_registered"
 contract_bundle: "0.1.0"
 description: "14-repository managed fleet: governance + runtime + providers + applications"
 
+fleet_scope:
+  core:
+    - fleet-base
+    - agent-tooling
+    - fleet-coordination
+    - fleet-ops
+    - rope-mcp
+    - vscode-workspace-mcp
+    - toolboxes
+
+  managed:
+    - flashcards
+    - membrane
+    - cv
+    - income-ops
+    - research
+    - sites
+    - demos
+
+  trial:
+    - fleet-ops
+    - fleet-coordination
+    - vscode-workspace-mcp
+
+boundary_configuration:
+  core_repositories:
+    path: .fleet/boundaries.md
+    required: true
+  managed_repositories:
+    path: .fleet/boundaries.md (standardizing)
+    required: false
+
 layer_model:
   layer_0: "Shared libraries (reusable, no MCP/provider-specific code)"
   layer_1: "Governance, runtime, providers, capabilities"
@@ -127,6 +159,9 @@ repositories:
     ref: "96b81ab3943ccaf73f3c29b6aaf41c92bf3754b4"
     role: "shared infrastructure library"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "approved"
     owner: "# NOTE: assign"
     lifecycle: approved
@@ -136,6 +171,9 @@ repositories:
     ref: "91e4c07aff04a2c29ca9dbe6ba3a6d569ae197f5"
     role: "shared agent infrastructure and contracts"
     required_boundaries: true
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "approved"
     owner: "# NOTE: assign"
     lifecycle: approved
@@ -145,6 +183,9 @@ repositories:
     ref: "b9cfcdda997e30ac7cbee9a8dc6cf8a553a956ca"
     role: "runtime control plane"
     required_boundaries: true
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: missing
+    boundary_content_status: not_checked
     status: "approved"
     owner: "# NOTE: assign"
     lifecycle: mature
@@ -154,6 +195,9 @@ repositories:
     ref: "3e67cfc7635149f3e87765e584db3e253a2124ea"
     role: "architecture and governance control plane"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "approved"
     owner: "# NOTE: assign"
     lifecycle: approved
@@ -163,6 +207,9 @@ repositories:
     ref: "0a16aeb745bf6b0d251c81c63dad75ec7f47297a"
     role: "provider adapter"
     required_boundaries: true
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "approved"
     owner: "# NOTE: assign"
     lifecycle: approved
@@ -172,6 +219,9 @@ repositories:
     ref: "1f9dca511fed877ce4885ff2cd3a4ab24904f714"
     role: "provider adapter"
     required_boundaries: true
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "approved"
     owner: "# NOTE: assign"
     lifecycle: approved
@@ -181,6 +231,9 @@ repositories:
     ref: "8f1843103eed79f3a4c9be6706325467db6188ec"
     role: "domain capabilities"
     required_boundaries: true
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "approved"
     owner: "# NOTE: assign"
     lifecycle: approved
@@ -190,6 +243,9 @@ repositories:
     ref: "# NOTE: assign"
     role: "application"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "external"
     owner: "# NOTE: assign"
     lifecycle: approved
@@ -199,6 +255,9 @@ repositories:
     ref: "# NOTE: assign"
     role: "research"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "external"
     owner: "# NOTE: assign"
     lifecycle: experimental
@@ -208,6 +267,9 @@ repositories:
     ref: "# NOTE: assign"
     role: "documentation"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "external"
     owner: "# NOTE: assign"
     lifecycle: approved
@@ -217,6 +279,9 @@ repositories:
     ref: "# NOTE: assign"
     role: "operations"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "external"
     owner: "# NOTE: assign"
     lifecycle: experimental
@@ -226,6 +291,9 @@ repositories:
     ref: "# NOTE: assign"
     role: "research"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "external"
     owner: "# NOTE: assign"
     lifecycle: experimental
@@ -235,6 +303,9 @@ repositories:
     ref: "# NOTE: assign"
     role: "web"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "external"
     owner: "# NOTE: assign"
     lifecycle: experimental
@@ -244,6 +315,9 @@ repositories:
     ref: "# NOTE: assign"
     role: "experimental"
     required_boundaries: false
+    boundary_path: ".fleet/boundaries.md"
+    boundary_file_status: not_checked
+    boundary_content_status: not_checked
     status: "external"
     owner: "# NOTE: assign"
     lifecycle: experimental
