@@ -12,8 +12,14 @@ just fleet-push --dry-run --scope core
 
 **Allowed:** `promotion_eligible` can be true OR false  
 **Output:** Shows selected/excluded repositories, dependency order, current/target refs, dirty worktrees, blocked conditions  
-**Mutation:** None (read-only visibility)  
-**Gates:** None (informational only)
+**Mutations:** ZERO (guaranteed read-only)
+- No repository refs changed
+- No branches created/deleted
+- No manifests modified
+- No remote state changed
+- No commits pushed
+**Gates:** None (informational only)  
+**Invariant:** Dry-run is safe to run at any time, on any branch state
 
 ### Non-Dry-Run (Requires Promotion)
 
@@ -23,17 +29,29 @@ just fleet-push --apply --scope core
 
 **Allowed:** Only if `promotion_eligible == true`  
 **Blocked:** If `status == "candidate"` or `status == "invalid"`  
-**Required:**
-- Explicit scope (core, managed, trial, or specific --repos list)
-- promotion_eligible flag verified
-- Dependency order resolved
-- Working tree policy (clean or explicitly overridden)
-- Remote identity verified
-- Preview reviewed
+
+**Explicit Requirements (all required):**
+- `--scope` flag must be explicit (core, managed, trial, or --repos list)
+- `--apply` flag must be explicit (no defaults/inference)
+- `promotion_eligible == true` (fresh fleet-check required)
+- Dependency order resolved and acyclic
+- Working tree clean or explicitly overridden with --force
+- Remote identity verified (git remote matches manifest)
+- Preview approved (reviewed --dry-run output)
 - Partial-failure behavior defined
 
-**Default behavior:** Refuse without `--apply` flag  
-**Idempotency:** Each run verifies state; safe to retry
+**Re-Validation Invariant:**
+- Before any mutation, re-run fleet-check immediately
+- Use fresh validation result, not cached
+- If state changed since approval, refuse and require re-approval
+
+**Default behavior:** Refuse everything unless explicit
+- No `just fleet-push` (infers scope)
+- No `just fleet-push --scope core` (missing --apply)
+- No apply without fresh validation
+
+**Mutation Safety:** All operations logged with audit trail  
+**Idempotency:** Each run re-validates; safe to retry after partial failure
 
 ---
 

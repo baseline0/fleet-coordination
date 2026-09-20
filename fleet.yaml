@@ -39,21 +39,35 @@ fleet_scope:
 scope_requirements:
   core:
     refs_required: true
-    contracts_required: true
+    contract_artifact_required: true
+    contract_verification_required: true
+    contract_verification_blocks_promotion: true
+    contract_verification_status: pending
     boundaries_required: true
     description: "Core federation — immutable, verified, release-managed"
 
   managed:
     refs_required: true
-    contracts_required: policy_defined
+    contract_artifact_required: false
+    contract_verification_required: policy_defined
     boundaries_required: false
     description: "Registered applications — not yet part of core release candidate"
 
   trial:
     refs_required: true
-    contracts_required: false
-    boundaries_required: false
-    description: "Runtime trial participants — separate governance from manifest promotion"
+    contract_artifact_required: true
+    contract_verification_required_for_trial_path: true
+    full_federation_verification_required: false
+    boundaries_required_for_trial_repos: true
+    trial_path_contracts_required:
+      - OperationContext
+      - AuditEvent
+      - CapabilityRequest
+      - CapabilityDecision
+      - ProviderReference
+      - ProviderInvoker
+      - trial_profile
+    description: "Runtime trial participants — trial-path verification required, full federation verification optional"
 
 boundary_configuration:
   core_repositories:
@@ -63,26 +77,40 @@ boundary_configuration:
     path: .fleet/boundaries.md (standardizing)
     required: false
 
-managed_repository_policy:
+managed_repository_operational_states:
+  description: "Orthogonal flags describing repository operational scope (not mutually exclusive)"
+
   registered:
-    description: "In fleet catalog"
-    owner_required: true
-    lifecycle_state_required: true
+    description: "Catalog entry only (discovery/inventory)"
+    required_fields:
+      - owner
+      - lifecycle
 
   managed:
-    description: "Included in health/evaluation operations"
-    health_check: enabled
-    evaluation: enabled
+    description: "Included in health checks and evaluation operations"
+    implies:
+      - health_check: enabled
+      - evaluation: enabled
 
   release_managed:
-    description: "Has pinned refs and participates in release candidates"
-    refs_required: true
-    lifecycle_state_required: true
-    boundary_policy_required: true
+    description: "Immutable refs and participates in fleet release candidates"
+    requires:
+      - refs: immutable (40-char SHA)
+      - lifecycle: approved or mature
+      - boundary_policy: defined
 
   trial_participant:
-    description: "Included in runtime trial scope"
-    trial_approved: true
+    description: "Approved for runtime trial scope"
+    requires:
+      - trial_profile: reference
+      - authorization: explicit
+
+example_repository_state:
+  flashcards:
+    registered: true
+    managed: true
+    release_managed: false
+    trial_participant: false
 
 layer_model:
   layer_0: "Shared libraries (reusable, no MCP/provider-specific code)"

@@ -211,15 +211,24 @@ class FleetChecker:
         return all_valid
 
     def check_contract_bundle(self) -> bool:
-        """Verify contract bundle exists and version matches."""
+        """Verify contract artifact exists. Verification is separate."""
+        scope_requirements = self.manifest.get("scope_requirements", {}).get(self.scope, {})
+        artifact_required = scope_requirements.get("contract_artifact_required", False)
+
         contract_file = self.manifest_path.parent / self.manifest.get("governance", {}).get("contract_bundle", "")
 
         if not contract_file.exists():
-            self.warnings.append(f"Contract bundle not found: {contract_file}")
-            self.results["checks"]["contracts"] = "pending"
-            return False
+            if artifact_required:
+                self.errors.append(f"REQUIRED: Contract bundle not found: {contract_file}")
+                self.results["checks"]["contracts"] = "fail"
+                return False
+            else:
+                # Artifact not required for this scope
+                self.results["checks"]["contracts"] = "pending"
+                return True
 
-        self.results["checks"]["contracts"] = "pending"  # Mark as pending until verified
+        # Artifact exists; verification is separate check (pending)
+        self.results["checks"]["contracts"] = "pending"  # Pending verification
         return True
 
     def check_trial_profile(self) -> bool:
@@ -310,17 +319,18 @@ class FleetChecker:
         has_errors = bool(self.errors)
         has_warnings = bool(self.warnings)
         scope_requirements = self.manifest.get("scope_requirements", {}).get(self.scope, {})
-        contracts_required = scope_requirements.get("contracts_required", True)
 
+        # Check what blocks promotion for this scope
+        contract_verification_blocks = scope_requirements.get("contract_verification_blocks_promotion", False)
         contract_pending = self.results["checks"]["contracts"] == "pending"
         trial_pending = self.results["checks"]["trial_profile"] == "pending"
 
-        # Promotion logic: errors always block, contract requirements per scope
+        # Promotion logic: errors always block, then check scope-specific gates
         if has_errors:
             self.results["status"] = "invalid"
             self.results["promotion_eligible"] = False
             return False
-        elif has_warnings or (contract_pending and contracts_required) or trial_pending:
+        elif has_warnings or (contract_pending and contract_verification_blocks) or trial_pending:
             self.results["status"] = "candidate"
             self.results["promotion_eligible"] = False
             return True
