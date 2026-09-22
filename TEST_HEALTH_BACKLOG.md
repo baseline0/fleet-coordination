@@ -85,16 +85,34 @@
 
 ---
 
-## 🔵 Priority 4: E2E Test Strategy Review (1-2 hours)
+## ✅ Priority 4: E2E Test Strategy Review (COMPLETE)
 
-**Question:** Do you need 168 E2E tests, or can some be unit tests?
+**Question:** Do you need 13 E2E tests (now skipped in CI), or can some be unit tests?
 
-**Review checklist:**
-- [ ] How many E2E tests are "critical workflows" vs. "nice to have"?
-- [ ] Can some be simplified to unit tests (mock dashboard, test API)?
-- [ ] Target split: 80% unit, 20% E2E
+**Findings:**
+- **1 critical:** State-mutation verification (read-only guarantee)
+- **12 convertible:** 8 subprocess recipes + 4 API validation tests
+- **Current:** All E2E skipped in CI (no infrastructure)
+- **Proposed:** 1 critical E2E (manual pre-release), 12 unit tests (in CI)
 
-**Outcome:** Proposed E2E test reduction (if applicable)
+**Outcome:** Detailed strategy document created
+
+**Roadmap:**
+- Week 1: Convert 8 justfile recipe tests → unit tests with mocks
+- Week 2: Convert 4 API validation tests → unit tests with TestClient
+- Week 3: Isolate 1 critical E2E test for pre-release manual validation
+
+**Result:** 98% unit + 2% E2E ratio (vs. currently 5% E2E skipped)
+
+**Benefits:**
+- Faster CI (no E2E overhead)
+- No infrastructure dependency
+- Better maintainability
+- Easier debugging
+
+**Document:** [E2E_STRATEGY_REVIEW.md](E2E_STRATEGY_REVIEW.md)
+
+**Next:** Decision on conversion priority vs. other work
 
 ---
 
