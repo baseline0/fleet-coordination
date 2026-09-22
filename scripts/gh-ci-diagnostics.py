@@ -105,12 +105,12 @@ class GHCIDiagnosticsAgent:
         """
         from datetime import datetime
 
-        # Load repository manifest
-        manifest_path = self.fleet_root / "fleet-coordination" / "governance" / "repository-manifest.yaml"
-        repos = self._load_repo_manifest(manifest_path) if manifest_path.exists() else []
-
+        # If target repo specified, scan just that; otherwise load manifest
         if target_repo:
-            repos = [r for r in repos if target_repo in r]
+            repos = [target_repo]
+        else:
+            manifest_path = self.fleet_root / "fleet-coordination" / "governance" / "repository-manifest.yaml"
+            repos = self._load_repo_manifest(manifest_path) if manifest_path.exists() else []
 
         failure_reports: list[FailureReport] = []
         repos_with_failures = set()
@@ -191,7 +191,7 @@ class GHCIDiagnosticsAgent:
                     "run",
                     "list",
                     "--repo",
-                    f"anthropics/{repo}",
+                    f"baseline0/{repo}",
                     "--limit",
                     str(limit),
                     "--json",
