@@ -3,9 +3,10 @@ kind: Component
 metadata:
   name: fleet-coordination
   title: Fleet Coordination
-  description: Governance and trial management system for fleet-wide versioned policies, trial profiles, and contract definitions
+  description: Governance and trial management system for fleet-wide versioned policies,
+    trial profiles, and contract definitions
   labels:
-    layer: "1"
+    layer: '1'
     type: infrastructure
     language: python
 spec:
@@ -13,13 +14,14 @@ spec:
   lifecycle: production
   owner: trial-lead
   dependsOn:
-    - fleet-base
+  - fleet-base
   provides:
-    - TrialProfile
-    - GovernanceSnapshots
-    - CapabilityContracts
+  - TrialProfile
+  - GovernanceSnapshots
+  - CapabilityContracts
   tags:
-    - governance
-    - policy
-    - trial-management
-    - contracts
+  - governance
+  - policy
+  - trial-management
+  - contracts
+schema_version: '1.0'

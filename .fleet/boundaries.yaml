@@ -1,0 +1,5 @@
+schema_version: '1.0'
+name: fleet-coordination
+title: fleet-coordination Boundaries
+description: Boundary specification
+status: approved

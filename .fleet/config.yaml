@@ -1,35 +1,25 @@
-# Fleet configuration for fleet-coordination
-# Governance and trial management for fleet operations
-
 type: infrastructure
 language: python
 test_framework: pytest
-
-# Standards compliance
 standards:
   type_hints: required
   docstrings: google-style
   max_line_length: 120
-
-# Governance
 governance:
   enabled: true
   fixable-categories:
-    - environment
-    - config
-    - discovery
+  - environment
+  - config
+  - discovery
   protected-paths:
-    - trial/
-    - governance/
-    - contracts/
-
-# Testing requirements
+  - trial/
+  - governance/
+  - contracts/
 testing:
   min_coverage: 80
   test_command: pytest tests/
   coverage_report: html
-
-# Guard rails
 guard-rails:
   max-lines-changed: 500
   require-approval: false
+schema_version: '1.0'
