@@ -1,0 +1,57 @@
+name: Weekly Test Health Report
+
+on:
+  schedule:
+    # Every Monday at 6 AM UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  test-health:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Generate test health report
+        run: uv run python scripts/test_health_report.py > TEST_HEALTH_REPORT.md
+
+      - name: Export JSON metrics
+        run: uv run python scripts/test_health_report.py --json > test-health.json
+
+      - name: Commit and push report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Only commit if files changed
+          if git diff --quiet TEST_HEALTH_REPORT.md test-health.json; then
+            echo "✅ No changes to report"
+          else
+            git add TEST_HEALTH_REPORT.md test-health.json
+            git commit -m "docs: update weekly test health report"
+            git push
+          fi
+
+      - name: Publish report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-health-report
+          path: |
+            TEST_HEALTH_REPORT.md
+            test-health.json
+          retention-days: 90
