@@ -130,18 +130,33 @@
 
 ## 🎯 Next Actions
 
-**Completed:**
-- [x] Decide on fleet-ops E2E fix (Option B: Skip in CI) — 2f2a0cb
-- [x] Add test badges to READMEs (6 repos) — db12ef5, 57e2641, a807e36, f6e146b
-- [x] Automate weekly test health report — 38b7823
-- [x] Schedule weekly cron (Monday 6 AM UTC) — 38b7823
-- [x] Generate baseline report (TEST_HEALTH_REPORT.md) — 38b7823
+**Completed (This Sprint):**
+- [x] Priority 1: Fix E2E token issue (Option B: Skip in CI) — 2f2a0cb
+- [x] Priority 2: Add test badges to READMEs (6 repos) — db12ef5, 57e2641, a807e36, f6e146b
+- [x] Priority 3: Automate weekly test health report — 38b7823
+- [x] Priority 4: E2E strategy review & approval — 06bab0a
 
-**Future (Priority 4 & Beyond):**
-- [ ] E2E test strategy review (scale down 168 tests?)
-- [ ] Add coverage metrics to test health report
+**In Progress (Next Sprint - Approved):**
+- [ ] **Week 1 (Sep 29):** Justfile recipe mocking (8→unit, <2 min CI)
+  - Acceptance criteria: subprocess mocked, contract test (nightly), coverage ≥ baseline
+  - Docs: E2E_CONVERSION_PLAN.md § Week 1
+- [ ] **Week 2 (Oct 6):** API validation via TestClient (4→unit, <30 sec CI)
+  - Acceptance criteria: isolated DB, schema contracts, deterministic fixtures
+  - Docs: E2E_CONVERSION_PLAN.md § Week 2
+- [ ] **Week 3 (Oct 13):** E2E isolation (1→manual pre-release)
+  - Acceptance criteria: documented steps, idempotent, release checklist
+  - Docs: E2E_CONVERSION_PLAN.md § Week 3
+
+**Guardrails:**
+- Mutation budget: persistent state → ephemeral/manual only
+- Flakiness rule: 2 flakes → auto-quarantine + ticket
+- ROI target: ≥40% PR cycle-time reduction
+- Contract tests prevent mock drift (nightly validation)
+
+**Future Opportunities:**
+- [ ] Add coverage metrics to weekly test health report
 - [ ] Consider fleet-governance as productized tool
-- [ ] Persistent trial server if infrastructure added → switch E2E to CI
+- [ ] Persistent trial server if infrastructure added → switch E2E to gated CI
 
 ---
 
