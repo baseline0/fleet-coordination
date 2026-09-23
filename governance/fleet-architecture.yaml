@@ -64,13 +64,18 @@ repositories:
       - toolboxes
     role: domain_tooling
     layer: 1.5
-    allowed_fleet_dependencies: []
+    allowed_fleet_dependencies:
+      - fleet-agents
     status: production
+    notes:
+      - "Consumes public tooling.agents contract: Toolbox, Context, Analysis, Recommendation (all @dataclass/ABC, pure data/protocol)."
+      - "Contract placement review triggered if second independent consumer emerges (see ADR-0002)."
     evidence_note: >
-      Checkpoint 2.1 investigation found zero static, dynamic, plugin, or test
-      imports of fleet-base or fleet-agents despite historical declarations.
-      Dependencies classified as STALE. Cleanup (removal) pending clean-environment
-      removal proof (Increment 2B). Policy reflects intended state: zero dependencies.
+      Checkpoint 2.1 found zero imports initially, but Increment 2A enforcement testing revealed
+      active use of tooling.agents (Toolbox protocol, Context/Analysis/Recommendation types)
+      in toolboxes.todo.todo_analysis. These are intentional public contracts, not stale deps.
+      Policy corrected to reflect deliberate architecture. Historical fleet-base declaration
+      remains stale; removal pending clean-environment proof (Increment 2B).
 
   fleet-ops:
     repository_path: fleet-ops
