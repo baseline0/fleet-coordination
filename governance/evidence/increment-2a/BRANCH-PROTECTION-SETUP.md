@@ -7,6 +7,16 @@
 
 ---
 
+## Important Limitation
+
+**GitHub API branch protection requires Pro plan.** Free accounts cannot configure branch protection via API (`gh api`) on private repos, even with admin access.
+
+**Options:**
+1. **GitHub UI** (always available): Follow manual steps below
+2. **GitHub CLI automation** (Pro/org plan only): Use `./scripts/configure_branch_protection.sh`
+
+---
+
 ## Quick Reference
 
 For each repo, go to **Settings → Branches → Add rule**:
