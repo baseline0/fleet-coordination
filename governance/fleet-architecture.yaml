@@ -5,14 +5,16 @@
 # fleet. It is the authoritative source for architectural boundaries and represents
 # the intended architecture informed by Checkpoint 2.1 evidence.
 #
-# Status: ENFORCEMENT ACTIVE (v0.1.0) — Five Python packages have import-linter CI checks running.
-# fleet-coordination excluded: no Python package root (dependency declaration check sufficient).
-# Stale dependencies removed (Increment 2B cleanup). Ready for fleet-wide validation report-only.
+# Status: v1.0.0 — STABLE BASELINE (Enforcement Active, Merge-Required Pending)
+# Five Python packages: import-linter CI checks running, violations block test execution.
+# Merge-blocking status: PENDING branch protection configuration (administrative action required).
+# fleet-coordination: validated via static checks (no Python package root).
+# Validation baseline: 2026-09-23 (0 discrepancies across policy/declared/observed/contracts).
 
 schema_version: "2.0"
 kind: fleet_architecture_policy
-policy_version: "0.1.0"
-status: draft
+policy_version: "1.0.0"
+status: active
 effective_date: "2026-09-23"
 last_verified: "2026-09-23"
 
@@ -23,9 +25,35 @@ metadata:
   evidence:
     checkpoint_2_inventory: fleet-coordination/governance/evidence/checkpoint-2/inventory.json
     checkpoint_2_1_results: fleet-coordination/governance/evidence/checkpoint-2/CHECKPOINT-2.1-RESULTS.md
+    validation_report: fleet-coordination/governance/evidence/fleet-validation/validation_2026-09-23T07-43-45.md
+    adr_0002: fleet-coordination/governance/decisions/ADR-0002-toolbox-agent-contract-dependency.md
   repository_count: 6
   layers: 4
   total_edges: 4
+
+# Enforcement configuration
+enforcement:
+  repository_boundary_checks:
+    status: active
+    mechanism: import-linter 2.15
+    local_command: "just check-imports"
+    ci_execution: active
+    merge_required: false
+    merge_required_pending: "GitHub branch protection configuration"
+    scope:
+      - Python source imports
+      - Python package dependency declarations
+    coverage:
+      applicable_repos: 5
+      excluded_repos: 1
+      excluded_reason: "fleet-coordination has no Python package root (static checks used instead)"
+
+  validation:
+    mode: report_only
+    script: "governance/tools/fleet_validation.py"
+    last_clean_pass: "2026-09-23T07:43:45"
+    discrepancies: 0
+    baseline_matching: true
 
 # Repository definitions with exact identifier mapping
 repositories:
