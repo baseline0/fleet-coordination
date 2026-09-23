@@ -1,0 +1,262 @@
+---
+# Fleet Architecture Policy — Canonical Cross-Repository Dependency Contract
+#
+# This document defines permitted Python package imports across the six-repository
+# fleet. It is the authoritative source for architectural boundaries and represents
+# the intended architecture informed by Checkpoint 2.1 evidence.
+#
+# Status: DRAFT (v0.1.0) — Report-only validation. Enforcement planned in Increment 2A.
+
+schema_version: "2.0"
+kind: fleet_architecture_policy
+policy_version: "0.1.0"
+status: draft
+effective_date: "2026-09-23"
+
+# Metadata and evidence chain
+metadata:
+  owner: Mark Alexiuk
+  location: fleet-coordination/governance/fleet-architecture.yaml
+  evidence:
+    checkpoint_2_inventory: fleet-coordination/governance/evidence/checkpoint-2/inventory.json
+    checkpoint_2_1_results: fleet-coordination/governance/evidence/checkpoint-2/CHECKPOINT-2.1-RESULTS.md
+  repository_count: 6
+  layers: 4
+  total_edges: 4
+
+# Repository definitions with exact identifier mapping
+repositories:
+  fleet-base:
+    repository_path: fleet-base
+    distributions:
+      - fleet-base
+    python_import_roots:
+      - fleet_base
+    role: foundational_infrastructure
+    layer: 0
+    allowed_fleet_dependencies: []
+    status: production
+    rationale: >
+      Layer 0 foundational layer. Zero fleet imports enforced.
+      Contains public contracts: audit, errors, logging, env, CLI infrastructure.
+
+  fleet-agents:
+    repository_path: fleet-agents
+    distributions:
+      - fleet-agents
+    python_import_roots:
+      - tooling
+    role: agent_protocols_and_abstractions
+    layer: 0.5
+    allowed_fleet_dependencies:
+      - fleet-base
+    status: production
+    rationale: >
+      Layer 0.5 agent infrastructure. Note: public API is 'tooling' package;
+      distribution is 'fleet-agents'. Intentional mapping; do not rename.
+      Exports agent protocols and tooling conventions.
+
+  fleet-toolbox:
+    repository_path: fleet-toolbox
+    distributions:
+      - fleet-toolbox
+    python_import_roots:
+      - toolboxes
+    role: domain_tooling
+    layer: 1.5
+    allowed_fleet_dependencies: []
+    status: production
+    evidence_note: >
+      Checkpoint 2.1 investigation found zero static, dynamic, plugin, or test
+      imports of fleet-base or fleet-agents despite historical declarations.
+      Dependencies classified as STALE. Cleanup (removal) pending clean-environment
+      removal proof (Increment 2B). Policy reflects intended state: zero dependencies.
+
+  fleet-ops:
+    repository_path: fleet-ops
+    distributions:
+      - fleet-ops
+    python_import_roots:
+      - fleet_ops
+    role: orchestration_and_control_plane
+    layer: 1
+    allowed_fleet_dependencies:
+      - fleet-base
+      - fleet-agents
+      - fleet-toolbox
+    status: production
+    rationale: >
+      Layer 1 control plane. May import Layer 0, 0.5, and 1.5 components.
+      Verified: all three declared dependencies are used.
+
+  fleet-coordination:
+    repository_path: fleet-coordination
+    distributions:
+      - fleet-coordination
+    python_import_roots: []
+    role: governance_and_decision_support
+    layer: 2
+    allowed_fleet_dependencies: []
+    status: experimental
+    rationale: >
+      Intentionally isolated governance layer. Zero fleet imports enforced.
+      Currently a library without standalone Python entry points; validation scope
+      confirmed in Checkpoint 2.1 inventory.
+
+  fleet-spec:
+    repository_path: fleet-spec
+    distributions:
+      - fleet-spec
+    python_import_roots:
+      - fleet_experiment
+    role: specifications_and_schema
+    layer: 2
+    allowed_fleet_dependencies: []
+    status: experimental
+    rationale: >
+      Intentionally isolated specification layer. Note: public API is 'fleet_experiment';
+      distribution is 'fleet-spec'. Intentional mapping; do not rename.
+      Zero fleet imports enforced.
+
+# Architectural invariants (enforced by policy, pending tool activation)
+invariants:
+  - id: declared-edges-only
+    statement: >
+      A fleet package may import only fleet packages declared in its
+      allowed_fleet_dependencies list.
+    enforcement: import_linter (planned)
+
+  - id: foundation-isolation
+    statement: >
+      fleet-base (Layer 0) must not import any fleet package.
+    enforcement: import_linter (planned)
+
+  - id: no-consumer-to-provider-imports
+    statement: >
+      A provider package must not import any package that is permitted to depend
+      on that provider. This prevents upward dependency cycles.
+    enforcement: import_linter (planned)
+
+  - id: acyclic-fleet-graph
+    statement: >
+      The directed graph formed by allowed_fleet_dependencies must be acyclic.
+      No circular dependencies between repositories.
+    enforcement: manual (design constraint)
+
+  - id: isolated-repos-explicit-contract
+    statement: >
+      Repositories with allowed_fleet_dependencies: [] must have an explicit
+      zero-dependency import-linter contract to prevent accidental coupling.
+    enforcement: import_linter (planned)
+
+# Current validation status (Checkpoint 2.1)
+validation:
+  schema_version: "2.0"
+  mode: report_only
+  effective: false
+  activation_planned: Increment_2A
+
+  import_linter:
+    status: planned
+    tool_version: pending_selection
+    installation_scope: per-repository_development_dependency
+    legacy_configurations_present: true
+    validated: false
+    ci_enforced: false
+    note: >
+      Four legacy .importlinter configuration files exist (fleet-base, fleet-agents,
+      fleet-ops, fleet-toolbox) but are currently unvalidated and unenforced.
+      Syntactic and semantic compatibility with selected import-linter version
+      remains to be verified during enforcement bootstrap (Increment 2A).
+      Explicit zero-dependency contracts must be added for fleet-coordination
+      and fleet-spec before enforcement activation.
+
+  evidence_baseline:
+    checkpoint_2: All six repos inventoried; no violations detected by import scan
+    checkpoint_2_1: Package identities verified; dependencies classified; enforcement gaps documented
+    current_conformance: Observed as conformant; not mechanically enforced
+    risk: Boundary violations could occur; not prevented by any active control
+
+# Public surface enforcement (deferred)
+public_surface:
+  enforcement: disabled
+  declared_modules: {}
+  activation_planned: Increment_3+
+  rationale: >
+    Public module inventories deferred until policy baseline is active and import-linter
+    enforcement is running. Current legitimate cross-repo imports must not be
+    contradicted by premature public_surface constraints.
+
+# Dependency graph summary
+dependency_graph:
+  edges:
+    - source: fleet-base
+      targets: []
+      count: 0
+
+    - source: fleet-agents
+      targets: [fleet-base]
+      count: 1
+
+    - source: fleet-toolbox
+      targets: []
+      count: 0
+      note: "Stale dependencies removed; zero dependencies intended"
+
+    - source: fleet-ops
+      targets: [fleet-base, fleet-agents, fleet-toolbox]
+      count: 3
+
+    - source: fleet-coordination
+      targets: []
+      count: 0
+
+    - source: fleet-spec
+      targets: []
+      count: 0
+
+  total_edges: 4
+  acyclic: true
+  verified_by: Checkpoint 2.1 inventory + evidence scan
+
+# Approval and review history
+approvals:
+  - role: Architecture Reviewer (Wingman)
+    decision: Approved for draft
+    date: "2026-09-23"
+    conditions:
+      - Distinct identifiers (repository_path, distribution, import_roots) required
+      - fleet-toolbox cleanup pending removal proof (Increment 2B)
+      - import-linter marked as planned, not active
+      - Configs documented as unvalidated legacy files
+      - Isolated repos have explicit zero-dependency contracts
+      - Public surface enforcement deferred
+
+next_review_date: "2026-09-30"
+review_trigger: Completion of Increment 2A (import-linter bootstrap and validation)
+
+# Notes for readers
+notes: |
+  This policy represents the intended architecture informed by Checkpoint 2.1 evidence.
+  It is currently a design document, not an enforced contract.
+
+  Key limitations:
+  - import-linter tool is not yet installed or running
+  - Four legacy .importlinter configs are syntactically unvalidated
+  - No CI gates are active
+  - No per-repository `just check-imports` commands exist
+  - Isolated repo contracts (fleet-coordination, fleet-spec) not yet encoded
+
+  The architecture is observably conformant (verified by Checkpoint 2.1 scans) but
+  has no mechanical guardrail against regression. Enforcement activation is planned
+  for Increment 2A with the following sequence:
+    1. Pin import-linter version across all six repos
+    2. Add to dev dependencies and regenerate uv.lock
+    3. Validate four legacy configs with installed tool
+    4. Add explicit zero-dependency contracts for isolated repos
+    5. Create test violations and verify detection
+    6. Add `just check-imports` to all repos
+    7. Activate as required CI job
+
+  See fleet-coordination/governance/evidence/checkpoint-2/CHECKPOINT-2.1-RESULTS.md
+  for detailed findings, root cause analysis, and Increment 2A/2B sequencing.
