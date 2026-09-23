@@ -1,0 +1,115 @@
+{
+  "timestamp": "2026-09-23T07:43:45",
+  "policy_path": "/home/mark/projects/fleet-coordination/governance/fleet-architecture.yaml",
+  "policy_version": "0.1.0",
+  "repositories": [
+    {
+      "repository": "fleet-base",
+      "commit_sha": "2cdd57d282d7",
+      "python_import_roots": [
+        "fleet_base"
+      ],
+      "policy_allowed_fleet_deps": [],
+      "declared_fleet_deps": [],
+      "observed_fleet_imports": {
+        "status": "deferred",
+        "note": "see import-linter output"
+      },
+      "import_linter_status": "pass",
+      "import_linter_contract_count": 1,
+      "differences": [],
+      "severity": "match"
+    },
+    {
+      "repository": "fleet-agents",
+      "commit_sha": "90244039a69f",
+      "python_import_roots": [
+        "tooling"
+      ],
+      "policy_allowed_fleet_deps": [
+        "fleet-base"
+      ],
+      "declared_fleet_deps": [
+        "fleet-base"
+      ],
+      "observed_fleet_imports": {
+        "status": "deferred",
+        "note": "see import-linter output"
+      },
+      "import_linter_status": "pass",
+      "import_linter_contract_count": 1,
+      "differences": [],
+      "severity": "match"
+    },
+    {
+      "repository": "fleet-toolbox",
+      "commit_sha": "62ce3ab40ba9",
+      "python_import_roots": [
+        "toolboxes"
+      ],
+      "policy_allowed_fleet_deps": [
+        "fleet-agents"
+      ],
+      "declared_fleet_deps": [
+        "fleet-agents"
+      ],
+      "observed_fleet_imports": {
+        "status": "deferred",
+        "note": "see import-linter output"
+      },
+      "import_linter_status": "pass",
+      "import_linter_contract_count": 1,
+      "differences": [],
+      "severity": "match"
+    },
+    {
+      "repository": "fleet-ops",
+      "commit_sha": "6c24a6a064a0",
+      "python_import_roots": [
+        "fleet_ops"
+      ],
+      "policy_allowed_fleet_deps": [
+        "fleet-base",
+        "fleet-agents",
+        "fleet-toolbox"
+      ],
+      "declared_fleet_deps": [
+        "fleet-base",
+        "fleet-agents",
+        "fleet-toolbox"
+      ],
+      "observed_fleet_imports": {
+        "status": "deferred",
+        "note": "see import-linter output"
+      },
+      "import_linter_status": "pass",
+      "import_linter_contract_count": 1,
+      "differences": [],
+      "severity": "match"
+    },
+    {
+      "repository": "fleet-spec",
+      "commit_sha": "a9307e6fb311",
+      "python_import_roots": [
+        "fleet_experiment"
+      ],
+      "policy_allowed_fleet_deps": [],
+      "declared_fleet_deps": [],
+      "observed_fleet_imports": {
+        "status": "deferred",
+        "note": "see import-linter output"
+      },
+      "import_linter_status": "pass",
+      "import_linter_contract_count": 1,
+      "differences": [],
+      "severity": "match"
+    }
+  ],
+  "summary": {
+    "total_repos": 5,
+    "match_count": 5,
+    "info_count": 0,
+    "warning_count": 0,
+    "error_count": 0
+  }
+}
