@@ -11,6 +11,7 @@ BRANCH="main"
 REQUIRED_CHECK="test"
 
 # The six repositories covered by Fleet Architecture v1.0
+# Exact list: intentionally explicit to avoid silent misses
 REPOS=(
   "fleet-base"
   "fleet-agents"
@@ -19,6 +20,11 @@ REPOS=(
   "fleet-coordination"
   "fleet-spec"
 )
+
+# Verify: all six repos must use 'main' as their default branch
+# Constraint: branch protection requires GitHub Pro/Team/Enterprise for private repos,
+# or GitHub Free for public repos. Regardless of visibility, this script uses the same
+# GitHub API capability that the UI uses.
 
 echo "=== Configuring Branch Protection: ${GH_OWNER} ==="
 echo "Branch: ${BRANCH}"
