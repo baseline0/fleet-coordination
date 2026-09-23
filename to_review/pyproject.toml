@@ -1,0 +1,11 @@
+[project]
+name = "fleet-coordination"
+version = "0.1.0"
+description = "Coordination artifacts for fleet-wide architecture governance"
+requires-python = ">=3.13"
+dependencies = [
+    "ruamel-yaml>=0.18.6",
+]
+
+[tool.uv]
+managed = true

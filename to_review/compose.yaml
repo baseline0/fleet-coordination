@@ -1,0 +1,58 @@
+services:
+  rope-mcp:
+    build:
+      context: ./rope-mcp
+      dockerfile: Dockerfile
+    container_name: rope-mcp-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ${PWD}:/workspace:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ALLOWED_ROOTS=/workspace
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 5000))"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+
+  vscode-workspace-mcp:
+    build:
+      context: ./vscode-workspace-mcp
+      dockerfile: Dockerfile
+    container_name: vscode-workspace-mcp-server
+    ports:
+      - "5001:5001"
+    volumes:
+      - ${PWD}:/workspace:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - WORKSPACE_ROOT=/workspace
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 5001))"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+      start_period: 10s
+
+  testbed:
+    build:
+      context: ./agent-tooling
+      dockerfile: Dockerfile.test
+    container_name: agent-tooling-testbed
+    depends_on:
+      rope-mcp:
+        condition: service_healthy
+      vscode-workspace-mcp:
+        condition: service_healthy
+    volumes:
+      - ${PWD}:/workspace
+      - ${PWD}/agent-tooling/tests:/tests:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ROPE_MCP_URL=http://rope-mcp:5000
+      - VSCODE_MCP_URL=http://vscode-workspace-mcp:5001
+      - WORKSPACE_ROOT=/workspace
+    command: pytest -xvs /tests/integration/test_agent_mcp_interaction.py

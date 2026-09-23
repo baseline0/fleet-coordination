@@ -1,0 +1,350 @@
+📋 Collecting fleet-base...
+📋 Collecting fleet-agents...
+📋 Collecting fleet-coordination...
+📋 Collecting fleet-ops...
+📋 Collecting fleet-spec...
+📋 Collecting fleet-toolbox...
+{
+  "timestamp": "2026-09-23T11:48:41Z",
+  "collection_tool": "collect_inventory.py",
+  "repositories": {
+    "fleet-base": {
+      "repository_path": "fleet-base",
+      "repository_revision": "bd6b4b31982a2869d86079d52f798264db6f3634",
+      "working_state": {
+        "is_clean": false,
+        "untracked_files": 0
+      },
+      "package_distribution_name": "fleet-base",
+      "python_import_roots": [
+        "fleet_base"
+      ],
+      "fleet_metadata_files": {
+        "governance-schema-v1.md": ".fleet/governance-schema-v1.md",
+        "config.yaml": ".fleet/config.yaml",
+        "boundaries.yaml": ".fleet/boundaries.yaml",
+        "schema-evolution.md": ".fleet/schema-evolution.md",
+        "template.md": ".fleet/template.md",
+        "catalog-info.yaml": ".fleet/catalog-info.yaml"
+      },
+      "importlinter_config": {
+        "exists": true,
+        "path": ".importlinter"
+      },
+      "declared_fleet_dependencies": [],
+      "actual_fleet_imports": {
+        "imports_found": 45,
+        "packages": [
+          "fleet_base"
+        ]
+      },
+      "ci_entry_points": {
+        "github_workflows": [],
+        "justfile_commands": [
+          "help",
+          "kill-pytest",
+          "kill-pytest-force",
+          "ps-pytest",
+          "top-pytest"
+        ]
+      }
+    },
+    "fleet-agents": {
+      "repository_path": "fleet-agents",
+      "repository_revision": "dc6bf28ba45e61b4d32dba045ce82968eafa984c",
+      "working_state": {
+        "is_clean": false,
+        "untracked_files": 0
+      },
+      "package_distribution_name": "fleet-agents",
+      "python_import_roots": [
+        "tooling"
+      ],
+      "fleet_metadata_files": {
+        "roadmap.yaml": ".fleet/roadmap.yaml",
+        "config.yaml": ".fleet/config.yaml",
+        "boundaries.yaml": ".fleet/boundaries.yaml",
+        "catalog-info.yaml": ".fleet/catalog-info.yaml"
+      },
+      "importlinter_config": {
+        "exists": true,
+        "path": ".importlinter"
+      },
+      "declared_fleet_dependencies": [
+        "fleet-base @ file:///home/mark/projects/fleet-base"
+      ],
+      "actual_fleet_imports": {
+        "imports_found": 27,
+        "packages": [
+          "fleet_agent_protocol",
+          "fleet_base",
+          "fleet_graph"
+        ]
+      },
+      "ci_entry_points": {
+        "github_workflows": [
+          "fleet-test.yml",
+          "fleet-agents.yml",
+          "test.yml"
+        ],
+        "justfile_commands": [
+          "ast-verify ARGS=\"\"",
+          "audit-fleet ARGS=\"\"",
+          "audit-repos",
+          "code-search ARGS=\"reindex\"",
+          "dashboard ARGS=\"\"",
+          "fleet-check",
+          "fleet-dashboard",
+          "fleet-fix *ARGS",
+          "fleet-fix-direct",
+          "fleet-fix-pr",
+          "fleet-fix-staged",
+          "fleet-recent LIMIT=\"10\"",
+          "fleet-status",
+          "lint-fix ARGS=\"\"",
+          "monitor REFRESH=\"5\" RUN_ID=\"\"",
+          "multi-repo-detect",
+          "multi-repo-report",
+          "ollama-check MODEL=\"mistral\"",
+          "ollama-down",
+          "ollama-ensure MODEL=\"mistral\"",
+          "ollama-health",
+          "ollama-models",
+          "ollama-restart",
+          "ollama-test",
+          "ollama-up",
+          "phase5e-check",
+          "pre-commit",
+          "scan-reusable",
+          "semantic-memory ARGS=\"stats\"",
+          "set default-list",
+          "setup",
+          "standards-check",
+          "standards-enforce",
+          "standards-fix",
+          "test-triage REPO=\"\"",
+          "update-coordination",
+          "validate-fleet ARGS=\"\""
+        ]
+      }
+    },
+    "fleet-coordination": {
+      "repository_path": "fleet-coordination",
+      "repository_revision": "392424180b5f4f06f54686f07741c31b7ab8ff3f",
+      "working_state": {
+        "is_clean": false,
+        "untracked_files": 4
+      },
+      "package_distribution_name": "fleet-coordination",
+      "python_import_roots": [],
+      "fleet_metadata_files": {
+        "config.yaml": ".fleet/config.yaml",
+        "boundaries.yaml": ".fleet/boundaries.yaml",
+        "governance-compliance-checker.md": ".fleet/governance-compliance-checker.md",
+        "catalog-info.yaml": ".fleet/catalog-info.yaml"
+      },
+      "importlinter_config": {
+        "exists": false
+      },
+      "declared_fleet_dependencies": [],
+      "actual_fleet_imports": {
+        "imports_found": 0,
+        "packages": []
+      },
+      "ci_entry_points": {
+        "github_workflows": [
+          "governance.yml",
+          "test-health.yml"
+        ],
+        "justfile_commands": [
+          "@default",
+          "check",
+          "check-governance",
+          "check-governance-json",
+          "check-governance-repo REPO",
+          "check-governance-strict",
+          "commit *ARGS",
+          "test"
+        ]
+      }
+    },
+    "fleet-ops": {
+      "repository_path": "fleet-ops",
+      "repository_revision": "bcd0d4fc4d9f151a1ff642ddd02997a08b7ddbe1",
+      "working_state": {
+        "is_clean": true,
+        "untracked_files": 0
+      },
+      "package_distribution_name": "fleet-ops",
+      "python_import_roots": [
+        "fleet_ops",
+        "fleet_ops.egg-info"
+      ],
+      "fleet_metadata_files": {
+        "roadmap.yaml": ".fleet/roadmap.yaml",
+        "config.yaml": ".fleet/config.yaml",
+        "boundaries.yaml": ".fleet/boundaries.yaml",
+        "standards.md": ".fleet/standards.md",
+        "catalog-info.yaml": ".fleet/catalog-info.yaml"
+      },
+      "importlinter_config": {
+        "exists": true,
+        "path": ".importlinter"
+      },
+      "declared_fleet_dependencies": [
+        "fleet-agents @ file:///home/mark/projects/fleet-agents",
+        "fleet-base @ file:///home/mark/projects/fleet-base",
+        "fleet-toolbox @ file:///home/mark/projects/fleet-toolbox"
+      ],
+      "actual_fleet_imports": {
+        "imports_found": 126,
+        "packages": [
+          "fleet_base",
+          "fleet_ops",
+          "fleet_toolbox"
+        ]
+      },
+      "ci_entry_points": {
+        "github_workflows": [
+          "openapi-diff.yml",
+          "smoke-test.yml",
+          "test.yml"
+        ],
+        "justfile_commands": [
+          "audit REPO=\"\"",
+          "boundaries-check",
+          "boundaries-init",
+          "check-layers MANIFEST=\"fleet-manifest.yaml\"",
+          "dashboard REFRESH=\"5\"",
+          "dispatch-agent AGENT REPO TASK MODEL=\"claude-opus-5\"",
+          "docker-down",
+          "docker-logs",
+          "docker-rebuild",
+          "docker-shell",
+          "docker-status",
+          "docker-up",
+          "e2e",
+          "e2e-clean",
+          "e2e-down",
+          "e2e-test",
+          "e2e-up",
+          "eval-fleet CONCURRENCY=\"4\" MODE=\"static-only\"",
+          "execute-jobs",
+          "execute-jobs-daemon",
+          "fleet CONCURRENCY=\"2\"",
+          "fleet-check",
+          "fleet-ci-status LIMIT=\"3\"",
+          "fleet-fix *ARGS",
+          "fleet-jobs STATUS=\"all\"",
+          "fleet-jobs-failed",
+          "fleet-jobs-running",
+          "fleet-push",
+          "fleet-push-auto",
+          "fleet-scan",
+          "fleet-test",
+          "health REFRESH=\"5\"",
+          "health-report",
+          "health-snapshot",
+          "inspect REPO",
+          "kill-job JOB_ID",
+          "local-agents-approve-low",
+          "local-agents-logs",
+          "local-agents-summary",
+          "local-agents-test",
+          "notifications STATUS=\"\"",
+          "orchestrator-agents",
+          "orchestrator-list",
+          "orchestrator-run WORKFLOW REPO",
+          "orchestrator-run-json WORKFLOW REPO",
+          "orchestrator-run-verbose WORKFLOW REPO",
+          "orchestrator-validate WORKFLOW_FILE",
+          "repl",
+          "repl-state",
+          "set default-list",
+          "smoke",
+          "trial-check",
+          "trial-compile SESSION_ID",
+          "trial-log JOB_ID",
+          "trial-observe",
+          "trial-record-finding ID SEVERITY CATEGORY OBSERVED EXPECTED",
+          "trial-watch",
+          "tui"
+        ]
+      }
+    },
+    "fleet-spec": {
+      "repository_path": "fleet-spec",
+      "repository_revision": "849e0e8e76c519b4657033aea2afca0dfa8973d2",
+      "working_state": {
+        "is_clean": false,
+        "untracked_files": 1
+      },
+      "package_distribution_name": "fleet-spec",
+      "python_import_roots": [
+        "fleet_experiment",
+        "fleet_spec.egg-info"
+      ],
+      "fleet_metadata_files": {},
+      "importlinter_config": {
+        "exists": false
+      },
+      "declared_fleet_dependencies": [],
+      "actual_fleet_imports": {
+        "imports_found": 0,
+        "packages": []
+      },
+      "ci_entry_points": {
+        "github_workflows": [],
+        "justfile_commands": [
+          "@default",
+          "check",
+          "clean",
+          "fmt",
+          "set dotenv-load",
+          "set shell",
+          "sync",
+          "task-approve TASK_ID TASK_FILE SPEC_FILE=\"\"",
+          "task-close TASK_ID ACTION COMMIT=\"\" REASON=\"\"",
+          "task-decision TASK_ID VERDICT REASON=\"\"",
+          "task-dispatch TASK_ID TASK_FILE REPO_PATH WORK_DIR=\"\" AGENT_SKIP=\"\"",
+          "task-history TASK_ID",
+          "task-review TASK_ID WORKTREE",
+          "test"
+        ]
+      }
+    },
+    "fleet-toolbox": {
+      "repository_path": "fleet-toolbox",
+      "repository_revision": "af960fc6fabb3d3677847177bec61b661ba2cf12",
+      "working_state": {
+        "is_clean": true,
+        "untracked_files": 0
+      },
+      "package_distribution_name": "fleet-toolbox",
+      "python_import_roots": [
+        "toolboxes"
+      ],
+      "fleet_metadata_files": {
+        "config.yaml": ".fleet/config.yaml",
+        "boundaries.yaml": ".fleet/boundaries.yaml",
+        "catalog-info.yaml": ".fleet/catalog-info.yaml"
+      },
+      "importlinter_config": {
+        "exists": true,
+        "path": ".importlinter"
+      },
+      "declared_fleet_dependencies": [
+        "fleet-agents @ file:///home/mark/projects/fleet-agents",
+        "fleet-base @ file:///home/mark/projects/fleet-base"
+      ],
+      "actual_fleet_imports": {
+        "imports_found": 0,
+        "packages": []
+      },
+      "ci_entry_points": {
+        "github_workflows": [],
+        "justfile_commands": []
+      }
+    }
+  }
+}
