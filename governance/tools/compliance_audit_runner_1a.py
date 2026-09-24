@@ -190,8 +190,8 @@ def execute_test_command(repo_path: Path, command: str, fleet_root: Optional[Pat
 
         return {
             "exit_code": result.returncode,
-            "stdout": result.stdout[:500],  # Truncate for evidence
-            "stderr": result.stderr[:500],
+            "stdout": result.stdout[:200],  # Truncate for evidence
+            "stderr": result.stderr[:1000],  # More stderr for failure diagnostics
             "error_reason": error_reason,
             "success": result.returncode == 0,
         }
