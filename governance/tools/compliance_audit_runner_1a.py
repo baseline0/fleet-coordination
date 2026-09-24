@@ -165,11 +165,15 @@ def resolve_test_command(repo_path: Path) -> Optional[str]:
 
 
 def execute_test_command(repo_path: Path, command: str, fleet_root: Optional[Path] = None) -> dict:
-    """Execute test command and capture output."""
+    """Execute test command in repository's managed environment."""
     try:
         env = dict(__import__("os").environ)
         if fleet_root:
             env["FLEET_ROOT"] = str(fleet_root)
+
+        # If command is raw pytest and repository has uv.lock, wrap with uv run
+        if "pytest" in command and (repo_path / "uv.lock").exists():
+            command = f"uv run {command}"
 
         result = subprocess.run(
             command,
