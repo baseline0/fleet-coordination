@@ -316,14 +316,19 @@ After two manual audits (fleet-agents, fleet-ops):
 
 ---
 
-## Phase 1B, 1C, 2+ (Deferred)
+## Phase 1B: Expand to 2 Controls × 3 Repositories (Approved)
 
-**Do not authorize until Phase 1A audit output is reviewed:**
+**Scope (Pragmatic):**
+- **Controls:** package_install, import_boundary_check
+- **Repositories:** fleet-base, fleet-coordination, fleet-spec
+- **Execution:** Manual invocation only (no scheduler)
+- **Output:** Report-only (no CI gates, no remediation)
 
-- **Phase 1B:** Add 3 more controls (package_install, import_boundary_check, governance_schema_validation) after command resolution evidence validated
-- **Phase 1C:** Write reviewed canonical audit records (durable storage)
+**Deferred to Phase 1C+:**
+- **Phase 1B+:** governance_schema_validation (defer until validator/command clearly declared per applicable repo)
+- **Phase 1C:** Write reviewed canonical audit records to durable storage
 - **Phase 2:** Error_boundary_review narrative handler classification
-- **Phase 3+:** Recurring schedule, dashboard, or CI policy (requires real run history and explicit decision)
+- **Phase 3+:** Recurring schedule, dashboard, or CI policy (retain reviewed audit records to compare recurring control outcomes)
 
 ---
 
