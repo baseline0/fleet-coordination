@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
-Phase 1B Compliance Audit Runner (Manual Invocation)
+Phase 2 Compliance Audit Runner (Manual Invocation)
 
-Audits four controls across multiple repositories:
+Audits five controls across multiple repositories:
 - repository_metadata: Role declared in fleet-architecture.yaml
 - test_execution: Declared test command executes successfully
 - package_install: Reproducible installation (uv sync, pip install -e ., etc.)
 - import_boundary_check: Import-linter configured and passes
+- error_boundary_review: Exception handlers collected for manual classification
 
 Output: Local YAML evidence records + Markdown summaries (pending review)
 No mutations, no scheduler, read-only only.
 
 Usage:
-    python compliance_audit_runner_1b.py /path/to/repo1 /path/to/repo2 [...]
+    python compliance_audit_runner_1a.py /path/to/repo1 /path/to/repo2 [...]
 """
 
 import json
@@ -417,6 +418,96 @@ def audit_import_boundary_check(repo_path: Path) -> ControlResult:
     return result
 
 
+def audit_error_boundary_review(repo_path: Path) -> ControlResult:
+    """Audit error_boundary_review control - collect exception handlers."""
+    repo_name = repo_path.name
+
+    result = ControlResult(
+        control_id="error_boundary_review",
+        repository=repo_name,
+        role="unknown",  # Will be filled by caller
+        applicable=True,
+        result="unknown",
+        confidence="medium",
+        evidence=[],
+        limitations=[
+            "Handler classification requires code review; grep finds only locations"
+        ],
+        next_step="review handler locations for acceptable-boundary vs. silent-failure patterns",
+    )
+
+    # Check for Python package structure
+    src_dir = repo_path / "src"
+    python_dirs = []
+    if src_dir.exists():
+        python_dirs.append(src_dir)
+    for name in ["tooling", "agents"]:
+        if (repo_path / name).is_dir() and (repo_path / name / "__init__.py").exists():
+            python_dirs.append(repo_path / name)
+
+    if not python_dirs:
+        result.result = "not_applicable"
+        result.evidence.append({
+            "source": "file structure",
+            "output": "no Python package structure detected",
+        })
+        return result
+
+    # Collect exception handlers using grep
+    handlers = []
+    try:
+        import re
+        handler_pattern = re.compile(r'^\s*except\s+(\(|)[^\s:]*Exception')
+
+        for python_dir in python_dirs:
+            for py_file in python_dir.rglob("*.py"):
+                try:
+                    content = py_file.read_text()
+                    lines = content.split("\n")
+
+                    for i, line in enumerate(lines, 1):
+                        if handler_pattern.search(line):
+                            # Catches: except Exception, except Exception as e,
+                            # except (Exception, ...), except BaseException, etc.
+                            rel_path = str(py_file.relative_to(repo_path))
+                            stripped = line.strip()
+                            handlers.append({
+                                "file": rel_path,
+                                "line": i,
+                                "pattern": stripped[:100],  # Truncate long lines
+                            })
+                except Exception:
+                    pass
+
+        if handlers:
+            result.evidence.append({
+                "source": "grep: except Exception",
+                "output": f"Found {len(handlers)} exception handlers",
+            })
+            for handler in sorted(handlers, key=lambda x: (x["file"], x["line"])):
+                result.evidence.append({
+                    "source": f"{handler['file']}:{handler['line']}",
+                    "output": handler["pattern"],
+                })
+            result.result = "unknown"  # Awaiting classification
+        else:
+            result.evidence.append({
+                "source": "grep: except Exception",
+                "output": "No bare except Exception handlers found",
+            })
+            result.result = "pass"  # No risky handlers
+            result.confidence = "high"
+
+    except Exception as e:
+        result.result = "unknown"
+        result.evidence.append({
+            "source": "grep error",
+            "output": f"Failed to scan for handlers: {e}",
+        })
+
+    return result
+
+
 def audit_repository(repo_path: Path, architecture: dict, fleet_root: Optional[Path] = None) -> list[ControlResult]:
     """Audit a single repository."""
     if not repo_path.exists():
@@ -443,6 +534,11 @@ def audit_repository(repo_path: Path, architecture: dict, fleet_root: Optional[P
     import_result = audit_import_boundary_check(repo_path)
     import_result.role = meta_result.role
     results.append(import_result)
+
+    # Control 5: error_boundary_review
+    error_result = audit_error_boundary_review(repo_path)
+    error_result.role = meta_result.role
+    results.append(error_result)
 
     return results
 
