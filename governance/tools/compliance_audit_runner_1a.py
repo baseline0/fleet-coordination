@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Phase 2 Compliance Audit Runner (Manual Invocation)
+Phase 3 Compliance Audit Runner (Manual Invocation)
 
-Audits five controls across multiple repositories:
+Audits six controls across multiple repositories:
 - repository_metadata: Role declared in fleet-architecture.yaml
 - test_execution: Declared test command executes successfully
 - package_install: Reproducible installation (uv sync, pip install -e ., etc.)
 - import_boundary_check: Import-linter configured and passes
 - error_boundary_review: Exception handlers collected for manual classification
+- governance_schema_validation: .fleet/ directory conforms to v1.0 schema
 
 Output: Local YAML evidence records + Markdown summaries (pending review)
 No mutations, no scheduler, read-only only.
@@ -24,6 +25,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 import yaml
+
+# Import governance schema validator from fleet-base
+try:
+    from fleet_base.governance_schema import GovernanceSchemaValidator
+    VALIDATOR_AVAILABLE = True
+except ImportError:
+    VALIDATOR_AVAILABLE = False
 
 # Configuration
 FLEET_ARCHITECTURE_PATH = Path(__file__).parent.parent / "fleet-architecture.yaml"
@@ -508,6 +516,81 @@ def audit_error_boundary_review(repo_path: Path) -> ControlResult:
     return result
 
 
+def audit_governance_schema_validation(repo_path: Path) -> ControlResult:
+    """Audit governance_schema_validation control - validate .fleet/ structure."""
+    repo_name = repo_path.name
+
+    result = ControlResult(
+        control_id="governance_schema_validation",
+        repository=repo_name,
+        role="unknown",  # Will be filled by caller
+        applicable=True,
+        result="unknown",
+        confidence="high",
+        evidence=[],
+        limitations=[],
+        next_step="review schema violations and update .fleet/ files as needed",
+    )
+
+    if not VALIDATOR_AVAILABLE:
+        result.result = "unknown"
+        result.confidence = "low"
+        result.evidence.append({
+            "source": "validator availability",
+            "output": "GovernanceSchemaValidator not available (fleet-base not installed in audit environment)",
+        })
+        result.limitations.append("Cannot validate schema without fleet-base")
+        return result
+
+    # Validate governance schema
+    validator = GovernanceSchemaValidator()
+    validation = validator.validate_repo(repo_path)
+
+    # Record schema version
+    result.evidence.append({
+        "source": "governance schema validation",
+        "output": f"schema_version={validation.schema_version}",
+    })
+
+    # Record file status
+    for filename, exists in validation.files.items():
+        status = "present" if exists else "missing"
+        result.evidence.append({
+            "source": f"file check: {filename}",
+            "output": status,
+        })
+
+    # Record errors as evidence
+    if validation.errors:
+        for error in validation.errors:
+            result.evidence.append({
+                "source": "validation error",
+                "output": error,
+            })
+            result.limitations.append(error)
+
+    # Record warnings
+    if validation.warnings:
+        for warning in validation.warnings:
+            result.evidence.append({
+                "source": "validation warning",
+                "output": warning,
+            })
+
+    # Determine result
+    if validation.valid:
+        result.result = "pass"
+        result.confidence = "high"
+    elif validation.errors:
+        result.result = "fail"
+        result.confidence = "high"
+    else:
+        result.result = "unknown"
+        result.confidence = "medium"
+
+    return result
+
+
 def audit_repository(repo_path: Path, architecture: dict, fleet_root: Optional[Path] = None) -> list[ControlResult]:
     """Audit a single repository."""
     if not repo_path.exists():
@@ -539,6 +622,11 @@ def audit_repository(repo_path: Path, architecture: dict, fleet_root: Optional[P
     error_result = audit_error_boundary_review(repo_path)
     error_result.role = meta_result.role
     results.append(error_result)
+
+    # Control 6: governance_schema_validation
+    schema_result = audit_governance_schema_validation(repo_path)
+    schema_result.role = meta_result.role
+    results.append(schema_result)
 
     return results
 
