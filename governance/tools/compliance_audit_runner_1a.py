@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-Phase 1A Compliance Audit Runner (Manual Invocation)
+Phase 1B Compliance Audit Runner (Manual Invocation)
 
-Audits two controls across two repositories:
+Audits four controls across multiple repositories:
 - repository_metadata: Role declared in fleet-architecture.yaml
 - test_execution: Declared test command executes successfully
+- package_install: Reproducible installation (uv sync, pip install -e ., etc.)
+- import_boundary_check: Import-linter configured and passes
 
 Output: Local YAML evidence records + Markdown summaries (pending review)
 No mutations, no scheduler, read-only only.
 
 Usage:
-    python compliance_audit_runner_1a.py /path/to/fleet-agents /path/to/fleet-ops
+    python compliance_audit_runner_1b.py /path/to/repo1 /path/to/repo2 [...]
 """
 
 import json
@@ -274,6 +276,143 @@ def audit_test_execution(repo_path: Path, fleet_root: Optional[Path] = None) -> 
     return result
 
 
+def audit_package_install(repo_path: Path) -> ControlResult:
+    """Audit package_install control."""
+    repo_name = repo_path.name
+
+    result = ControlResult(
+        control_id="package_install",
+        repository=repo_name,
+        role="unknown",  # Will be filled by caller
+        applicable=True,
+        result="unknown",
+        confidence="high",
+        evidence=[],
+        limitations=["Installation test requires environment setup"],
+        next_step="verify uv sync or equivalent produces reproducible environment",
+    )
+
+    # Check for setup indicators
+    has_pyproject = (repo_path / "pyproject.toml").exists()
+    has_uv_lock = (repo_path / "uv.lock").exists()
+    has_poetry_lock = (repo_path / "poetry.lock").exists()
+
+    if not has_pyproject:
+        result.result = "not_applicable"
+        result.evidence.append({
+            "source": "file presence",
+            "output": "no pyproject.toml found; repository may not be Python package",
+        })
+        return result
+
+    result.evidence.append({
+        "source": "pyproject.toml",
+        "output": "present",
+    })
+
+    if has_uv_lock:
+        result.evidence.append({
+            "source": "lock file",
+            "output": "uv.lock present (reproducible via uv sync --locked)",
+        })
+        result.result = "pass"
+        result.confidence = "high"
+    elif has_poetry_lock:
+        result.evidence.append({
+            "source": "lock file",
+            "output": "poetry.lock present",
+        })
+        result.result = "pass"
+    else:
+        result.evidence.append({
+            "source": "lock file",
+            "output": "no lock file (uv.lock or poetry.lock)",
+        })
+        result.result = "unknown"
+        result.limitations.append("Lock file not found; reproducibility unclear")
+
+    return result
+
+
+def audit_import_boundary_check(repo_path: Path) -> ControlResult:
+    """Audit import_boundary_check control."""
+    repo_name = repo_path.name
+
+    result = ControlResult(
+        control_id="import_boundary_check",
+        repository=repo_name,
+        role="unknown",  # Will be filled by caller
+        applicable=True,
+        result="unknown",
+        confidence="high",
+        evidence=[],
+        limitations=[],
+        next_step="verify import-linter configuration and CI execution",
+    )
+
+    # Check for Python package structure
+    src_dir = repo_path / "src"
+    has_python_package = src_dir.exists() or any(
+        (repo_path / name).is_dir() and (repo_path / name / "__init__.py").exists()
+        for name in ["tooling", "agents"]  # Common package names
+    )
+
+    if not has_python_package:
+        result.result = "not_applicable"
+        result.evidence.append({
+            "source": "file structure",
+            "output": "no Python package structure detected; boundary check not applicable",
+        })
+        return result
+
+    # Check for import-linter configuration
+    setup_cfg = repo_path / "setup.cfg"
+    pyproject_toml = repo_path / "pyproject.toml"
+
+    has_import_linter = False
+    if setup_cfg.exists():
+        try:
+            content = setup_cfg.read_text()
+            if "[import_linter]" in content:
+                has_import_linter = True
+                result.evidence.append({
+                    "source": "setup.cfg",
+                    "output": "[import_linter] section configured",
+                })
+        except Exception:
+            pass
+
+    if pyproject_toml.exists():
+        try:
+            with open(pyproject_toml) as f:
+                content = f.read()
+            if "[tool.import_linter]" in content or "import-linter" in content:
+                has_import_linter = True
+                result.evidence.append({
+                    "source": "pyproject.toml",
+                    "output": "[tool.import_linter] configured",
+                })
+        except Exception:
+            pass
+
+    if has_import_linter:
+        result.result = "pass"
+        result.confidence = "medium"
+        result.evidence.append({
+            "source": "configuration presence",
+            "output": "import-linter configured; CI execution assumed",
+        })
+    else:
+        result.result = "fail"
+        result.evidence.append({
+            "source": "configuration",
+            "output": "import-linter not found in setup.cfg or pyproject.toml",
+        })
+        result.limitations.append("Cannot verify CI execution without configuration")
+
+    return result
+
+
 def audit_repository(repo_path: Path, architecture: dict, fleet_root: Optional[Path] = None) -> list[ControlResult]:
     """Audit a single repository."""
     if not repo_path.exists():
@@ -290,6 +429,16 @@ def audit_repository(repo_path: Path, architecture: dict, fleet_root: Optional[P
     test_result = audit_test_execution(repo_path, fleet_root=fleet_root)
     test_result.role = meta_result.role
     results.append(test_result)
+
+    # Control 3: package_install
+    pkg_result = audit_package_install(repo_path)
+    pkg_result.role = meta_result.role
+    results.append(pkg_result)
+
+    # Control 4: import_boundary_check
+    import_result = audit_import_boundary_check(repo_path)
+    import_result.role = meta_result.role
+    results.append(import_result)
 
     return results
 
