@@ -35,6 +35,19 @@ These are valid tasks but do not block Morning Review:
 - **Done when:** Results use format like `fleet-ops-2026-09-24T1415CDT.yaml` instead of phase names
 - **Effort:** 15 minutes
 
+### Investigation: AI Testing & Governance Framework Alignment (NIST AI RMF)
+- **Priority:** Strategic/governance review
+- **Scope:** Document evidence-generating, bounded evaluation approach for AI-assisted development:
+  - Explicit evaluation limits (e.g., "Pass@1 ≥ 90%" for delegation decisions)
+  - Pre-registered test sets and batch parameters (deterministic acceptance criteria)
+  - Safety-decline monitoring (track degradation patterns, not one-time approval)
+  - Repeatable evaluation processes (documented metrics, test harness, audit trail)
+  - Ongoing monitoring vs. one-time sign-off (continuous governance stance)
+  - Alignment with NIST AI RMF: risk management framework for documented oversight
+- **Why:** Current agent delegation logic (Ollama vs Claude cost-optimization) uses ad-hoc Pass@1 targets. Formalize as disciplined test strategy with reproducible decision gates.
+- **Output:** Governance memo or ADR documenting evaluation framework for fleet AI tooling
+- **Effort:** 3-4 hours (research NIST AI RMF + document strategy)
+
 ---
 
 ## Morning Review (ACTIVE)
