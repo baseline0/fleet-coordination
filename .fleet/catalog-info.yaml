@@ -24,4 +24,10 @@ spec:
   - policy
   - trial-management
   - contracts
+  responsibilities:
+  - "Author and maintain fleet-wide .fleet/ governance schema"
+  - "Define fleet compliance policies and required fields"
+  - "Publish policy decisions via ADRs in governance/"
+  - "Manage policy versioning and contract definitions"
+  - "Own all .fleet/config.yaml and .fleet/catalog-info.yaml changes across fleet"
 schema_version: '1.0'
