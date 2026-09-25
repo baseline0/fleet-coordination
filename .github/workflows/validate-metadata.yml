@@ -23,11 +23,11 @@ jobs:
     steps:
       # Step 1: Get provider HEAD SHA
       - name: Capture provider head SHA
-        run: echo "PROVIDER_HEAD=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+        run: echo "PROVIDER_HEAD=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
 
       # Step 2: Get workflow commit SHA
       - name: Capture workflow commit SHA
-        run: echo "WORKFLOW_SHA=${{ github.workflow_sha }}" >> $GITHUB_ENV
+        run: echo "WORKFLOW_SHA=${{ github.workflow_sha }}" >> "$GITHUB_ENV"
 
       # Step 3: Check out the current repository (the one being modified)
       - name: Checkout provider repository
