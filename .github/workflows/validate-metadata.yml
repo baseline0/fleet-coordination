@@ -1,7 +1,7 @@
 # Validate Fleet Metadata
-# 
-# Purpose: Report-only CI check of repository metadata against fleet governance contract.
-# This is a trial validation; failures do not block PR merge.
+#
+# Purpose: Advisory CI check of repository metadata against fleet governance contract.
+# Failures indicate contract-invalid metadata that requires reviewer verification or documented exception.
 #
 # Triggered when: Pull request modifies .fleet/ files
 
@@ -167,15 +167,24 @@ jobs:
               print(f"⚠️  Metadata validation returned: {result['read_state']}")
               print("\nFor remediation, see:")
               print("  https://github.com/mark-alexiuk/fleet-ops/blob/main/docs/governance/GOVERNANCE_ROLLOUT_PLAN.md")
-              print("\nThis is a report-only check during the trial phase.")
-              print("Merge is not blocked.")
-          
-          # Report-only: always succeed (metadata validity never blocks)
-          # But fail on validator invocation errors
-          if not validator_success and not diagnostics:
-              exit(1)  # CI machinery failure: exit with error
+              print("\nRequired reviewer action:")
+              print("  1. Request correction of the metadata, OR")
+              print("  2. Record a documented exception (reason, owner, remediation target date)")
+              print("\nDo not merge without correction or documented exception.")
+
+          # Exit logic:
+          # - Fail (exit 1) on validator machinery failure
+          # - Fail (exit 1) on known contract-invalid diagnostics (missing required fields, invalid YAML)
+          # - Succeed (exit 0) on valid metadata
+          if not validator_success:
+              # Machinery failure: always fail visibly
+              exit(1)
+          elif any(d.get('code') in ['missing_required_field', 'invalid_yaml', 'unsupported_schema'] for d in diagnostics):
+              # Contract-invalid: fail to signal required reviewer action
+              exit(1)
           else:
-              exit(0)  # Metadata status (ok/warning/failed) never blocks
+              # Valid metadata or other non-blocking diagnostics
+              exit(0)
           PYTHON
 
       # Step 7: Upload structured validation artifact
