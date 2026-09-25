@@ -1,5 +1,12 @@
 
 repos:
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.6.26
+    hooks:
+      - id: actionlint
+        name: "[P1] Validate GitHub Actions workflows"
+        files: ^\.github/workflows/.*\.ya?ml$
+
   - repo: https://github.com/baseline0/fleet-base
     rev: v1.0.0
     hooks:
