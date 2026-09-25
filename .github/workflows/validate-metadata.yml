@@ -25,28 +25,32 @@ jobs:
       - name: Capture provider head SHA
         run: echo "PROVIDER_HEAD=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
 
-      # Step 2: Check out the current repository (the one being modified)
+      # Step 2: Get workflow commit SHA
+      - name: Capture workflow commit SHA
+        run: echo "WORKFLOW_SHA=${{ github.workflow_sha }}" >> $GITHUB_ENV
+
+      # Step 3: Check out the current repository (the one being modified)
       - name: Checkout provider repository
         uses: actions/checkout@v4
         with:
           path: provider-repo
           ref: ${{ github.event.pull_request.head.sha }}
 
-      # Step 3: Check out fleet-ops at the pinned reader commit
+      # Step 4: Check out fleet-ops at the pinned reader commit
       - name: Checkout fleet-ops (metadata reader)
         uses: actions/checkout@v4
         with:
           repository: mark-alexiuk/fleet-ops
-          ref: '146c316'  # Immutable commit: FleetMetadataReader implementation
+          ref: '146c316f0b45719ac088192f68aa60960742052a'
           path: fleet-ops-tools
 
-      # Step 4: Set up Python
+      # Step 5: Set up Python
       - name: Set up Python 3.13
         uses: actions/setup-python@v4
         with:
           python-version: '3.13'
 
-      # Step 5: Run metadata validation and generate structured report
+      # Step 6: Run metadata validation and generate structured report
       - name: Validate fleet metadata contract
         run: |
           cd fleet-ops-tools
@@ -57,30 +61,69 @@ jobs:
           from pathlib import Path
           
           start_time = time.time()
-          sys.path.insert(0, 'src')
+          validator_success = False
+          diagnostics = []
           
-          from fleet_ops.services.fleet_metadata_reader import FleetMetadataReader
+          try:
+              sys.path.insert(0, 'src')
+              
+              from fleet_ops.services.fleet_metadata_reader import FleetMetadataReader
+              
+              reader = FleetMetadataReader()
+              repo_path = Path('../provider-repo')
+              model, state = reader.read(repo_path)
+              validator_success = True
+              
+              # Check for missing required fields and build diagnostics
+              if model.owner is None:
+                  diagnostics.append({
+                      "code": "missing_required_field",
+                      "field": "owner",
+                      "message": "Required repository identity field 'owner' is missing."
+                  })
+              
+              if model.layer is None:
+                  diagnostics.append({
+                      "code": "missing_required_field",
+                      "field": "layer",
+                      "message": "Required repository identity field 'layer' is missing."
+                  })
+              
+              if model.lifecycle is None:
+                  diagnostics.append({
+                      "code": "missing_required_field",
+                      "field": "lifecycle",
+                      "message": "Required repository identity field 'lifecycle' is missing."
+                  })
           
-          reader = FleetMetadataReader()
-          repo_path = Path('../provider-repo')
-          model, state = reader.read(repo_path)
+          except Exception as e:
+              state = "failed"
+              validator_success = False
+              diagnostics.append({
+                  "code": "validator_error",
+                  "message": f"Validator invocation failed: {str(e)}"
+              })
           
           elapsed_seconds = time.time() - start_time
           
           # Structured output for consumption and artifacts
           result = {
               "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-              "provider_repository": model.repository_id,
+              "provider_repository": model.repository_id if validator_success else "unknown",
               "provider_head_sha": "${{ env.PROVIDER_HEAD }}",
-              "validator_fleet_ops_sha": "146c316",
+              "workflow_commit_sha": "${{ env.WORKFLOW_SHA }}",
+              "validator_fleet_ops_sha": "146c316f0b45719ac088192f68aa60960742052a",
               "schema_version": "1.0",
-              "read_state": state,
+              "artifact_schema_version": "1.0",
+              "read_state": state if validator_success else "failed",
+              "validator_invocation_succeeded": validator_success,
+              "diagnostics": diagnostics,
               "metadata": {
-                  "owner": model.owner,
-                  "layer": model.layer,
-                  "lifecycle": model.lifecycle,
-                  "component_type": model.component_type,
-              },
+                  "owner": model.owner if validator_success else None,
+                  "layer": model.layer if validator_success else None,
+                  "lifecycle": model.lifecycle if validator_success else None,
+                  "component_type": model.component_type if validator_success else None,
+              } if validator_success else None,
               "elapsed_seconds": round(elapsed_seconds, 2)
           }
           
@@ -94,30 +137,48 @@ jobs:
           print("=" * 70)
           print(f"Provider: {result['provider_repository']}")
           print(f"Provider head SHA: {result['provider_head_sha'][:12]}")
-          print(f"Validator SHA: {result['validator_fleet_ops_sha']}")
+          print(f"Validator SHA: {result['validator_fleet_ops_sha'][:12]}")
+          print(f"Workflow SHA: {result['workflow_commit_sha'][:12]}")
           print(f"Schema version: {result['schema_version']}")
           print(f"Read state: {result['read_state'].upper()}")
           print(f"Elapsed time: {result['elapsed_seconds']}s")
           print()
-          print(f"Owner: {model.owner}")
-          print(f"Layer: {model.layer}")
-          print(f"Lifecycle: {model.lifecycle}")
-          print(f"Type: {model.component_type}")
+          
+          if validator_success:
+              if model.owner:
+                  print(f"Owner: {model.owner}")
+              if model.layer is not None:
+                  print(f"Layer: {model.layer}")
+              if model.lifecycle:
+                  print(f"Lifecycle: {model.lifecycle}")
+              if model.component_type:
+                  print(f"Type: {model.component_type}")
+          
+          if diagnostics:
+              print("\nDiagnostics:")
+              for diag in diagnostics:
+                  print(f"  - {diag['code']}: {diag['message']}")
+          
           print("=" * 70)
           
-          if state == 'ok':
+          if result['read_state'] == 'ok':
               print("✅ Metadata is valid and complete.")
           else:
-              print(f"⚠️  Metadata validation returned: {state}")
+              print(f"⚠️  Metadata validation returned: {result['read_state']}")
               print("\nFor remediation, see:")
               print("  https://github.com/mark-alexiuk/fleet-ops/blob/main/docs/governance/GOVERNANCE_ROLLOUT_PLAN.md")
               print("\nThis is a report-only check during the trial phase.")
               print("Merge is not blocked.")
           
-          exit(0)  # Report-only: always succeed
+          # Report-only: always succeed (metadata validity never blocks)
+          # But fail on validator invocation errors
+          if not validator_success and not diagnostics:
+              exit(1)  # CI machinery failure: exit with error
+          else:
+              exit(0)  # Metadata status (ok/warning/failed) never blocks
           PYTHON
 
-      # Step 6: Upload structured validation artifact
+      # Step 7: Upload structured validation artifact
       - name: Upload validation artifact
         if: always()
         uses: actions/upload-artifact@v4
