@@ -12,19 +12,27 @@ on:
     paths:
       - '.fleet/**'
 
+permissions:
+  contents: read
+
 jobs:
   metadata-validation:
     runs-on: ubuntu-latest
     name: Fleet metadata contract check
     
     steps:
-      # Step 1: Check out the current repository (the one being modified)
+      # Step 1: Get provider HEAD SHA
+      - name: Capture provider head SHA
+        run: echo "PROVIDER_HEAD=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+
+      # Step 2: Check out the current repository (the one being modified)
       - name: Checkout provider repository
         uses: actions/checkout@v4
         with:
           path: provider-repo
+          ref: ${{ github.event.pull_request.head.sha }}
 
-      # Step 2: Check out fleet-ops at the pinned reader commit
+      # Step 3: Check out fleet-ops at the pinned reader commit
       - name: Checkout fleet-ops (metadata reader)
         uses: actions/checkout@v4
         with:
@@ -32,58 +40,89 @@ jobs:
           ref: '146c316'  # Immutable commit: FleetMetadataReader implementation
           path: fleet-ops-tools
 
-      # Step 3: Set up Python
+      # Step 4: Set up Python
       - name: Set up Python 3.13
         uses: actions/setup-python@v4
         with:
           python-version: '3.13'
 
-      # Step 4: Run metadata validation
+      # Step 5: Run metadata validation and generate structured report
       - name: Validate fleet metadata contract
         run: |
           cd fleet-ops-tools
           uv run python3 << 'PYTHON'
           import sys
+          import json
+          import time
+          from pathlib import Path
+          
+          start_time = time.time()
           sys.path.insert(0, 'src')
           
-          from pathlib import Path
           from fleet_ops.services.fleet_metadata_reader import FleetMetadataReader
           
           reader = FleetMetadataReader()
           repo_path = Path('../provider-repo')
           model, state = reader.read(repo_path)
           
-          # Print structured diagnostic
+          elapsed_seconds = time.time() - start_time
+          
+          # Structured output for consumption and artifacts
+          result = {
+              "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+              "provider_repository": model.repository_id,
+              "provider_head_sha": "${{ env.PROVIDER_HEAD }}",
+              "validator_fleet_ops_sha": "146c316",
+              "schema_version": "1.0",
+              "read_state": state,
+              "metadata": {
+                  "owner": model.owner,
+                  "layer": model.layer,
+                  "lifecycle": model.lifecycle,
+                  "component_type": model.component_type,
+              },
+              "elapsed_seconds": round(elapsed_seconds, 2)
+          }
+          
+          # Save structured result to JSON artifact
+          with open('../validation-result.json', 'w') as f:
+              json.dump(result, f, indent=2)
+          
+          # Print human-readable summary to logs
           print("=" * 70)
           print("Fleet Metadata Validation Report")
           print("=" * 70)
-          print(f"Repository: {model.repository_id}")
-          print(f"Status: {state.upper()}")
+          print(f"Provider: {result['provider_repository']}")
+          print(f"Provider head SHA: {result['provider_head_sha'][:12]}")
+          print(f"Validator SHA: {result['validator_fleet_ops_sha']}")
+          print(f"Schema version: {result['schema_version']}")
+          print(f"Read state: {result['read_state'].upper()}")
+          print(f"Elapsed time: {result['elapsed_seconds']}s")
+          print()
           print(f"Owner: {model.owner}")
           print(f"Layer: {model.layer}")
           print(f"Lifecycle: {model.lifecycle}")
-          print(f"Component type: {model.component_type}")
+          print(f"Type: {model.component_type}")
           print("=" * 70)
           
           if state == 'ok':
               print("✅ Metadata is valid and complete.")
-              exit(0)
           else:
               print(f"⚠️  Metadata validation returned: {state}")
               print("\nFor remediation, see:")
               print("  https://github.com/mark-alexiuk/fleet-ops/blob/main/docs/governance/GOVERNANCE_ROLLOUT_PLAN.md")
               print("\nThis is a report-only check during the trial phase.")
-              print("Merge is not blocked. See trial progress:")
-              print("  https://github.com/mark-alexiuk/fleet-ops/blob/main/TODO.md")
-              exit(0)  # Report-only: always succeed
+              print("Merge is not blocked.")
+          
+          exit(0)  # Report-only: always succeed
           PYTHON
 
-      # Step 5: Upload diagnostics artifact (for trial evidence collection)
-      - name: Collect trial evidence
+      # Step 6: Upload structured validation artifact
+      - name: Upload validation artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: metadata-validation-log
-          path: validation.log
+          name: metadata-validation-result
+          path: validation-result.json
           retention-days: 30
-        continue-on-error: true
+          if-no-files-found: warn
