@@ -26,18 +26,18 @@ tested_date: "2026-09-20"
 verified_by: "boundary-scanner (report-only baseline)"
 
 repositories:
-  agent-tooling: "0.2.0"
+  fleet-agents: "0.2.0"
   toolboxes: "0.1.0"  # NOTE: pending admission review
-  rope-mcp: "0.7.2"
-  vscode-workspace-mcp: "0.6.1"
+  mcp-rope: "0.7.2"
+  mcp-vscode: "0.6.1"
   fleet-ops: "0.9.0"
 
 contract_bundle: "0.1.0"
 
 tested_workflows:
   - agent request handling (basic)
-  - rope-mcp capability discovery
-  - vscode-workspace-mcp discovery
+  - mcp-rope capability discovery
+  - mcp-vscode discovery
   - operation context creation
   - audit event tracking
 
@@ -60,19 +60,19 @@ notes: "Baseline established; awaiting Week 2 decisions and strict-mode dry run"
 
 ```yaml
 compatible_pairs:
-  - agent-tooling:0.2.0 + rope-mcp:0.7.2  # tested
-  - agent-tooling:0.2.0 + vscode-workspace-mcp:0.6.1  # tested
-  - rope-mcp:0.7.2 + fleet-ops:0.9.0  # tested
-  - vscode-workspace-mcp:0.6.1 + fleet-ops:0.9.0  # tested
+  - fleet-agents:0.2.0 + mcp-rope:0.7.2  # tested
+  - fleet-agents:0.2.0 + mcp-vscode:0.6.1  # tested
+  - mcp-rope:0.7.2 + fleet-ops:0.9.0  # tested
+  - mcp-vscode:0.6.1 + fleet-ops:0.9.0  # tested
 ```
 
 ### NOT Tested (Do Not Deploy)
 
 ```yaml
 untested_pairs:
-  - agent-tooling:0.2.0 + rope-mcp:0.6.0  # deprecated rope version
-  - agent-tooling:0.1.x + anything  # superseded
-  - rope-mcp:0.7.2 + fleet-ops:0.8.0  # fleet-ops too old
+  - fleet-agents:0.2.0 + mcp-rope:0.6.0  # deprecated rope version
+  - fleet-agents:0.1.x + anything  # superseded
+  - mcp-rope:0.7.2 + fleet-ops:0.8.0  # fleet-ops too old
 
   # NOTE: Any new combinations require integration testing
 ```
@@ -81,7 +81,7 @@ untested_pairs:
 
 ## Version Constraints
 
-### agent-tooling
+### fleet-agents
 ```yaml
 version: "0.2.0"
 status: stable
@@ -91,15 +91,15 @@ backward_compatible: 12_months
 
 requires:
   fleet-ops: ">=0.9.0,<1.0"
-  rope-mcp: ">=0.7.0,<1.0"
-  vscode-workspace-mcp: ">=0.6.0,<1.0"
+  mcp-rope: ">=0.7.0,<1.0"
+  mcp-vscode: ">=0.6.0,<1.0"
 
 exports:
   - OperationContext (v0.2)
   - AuditEvent (v0.2)
 ```
 
-### rope-mcp
+### mcp-rope
 ```yaml
 version: "0.7.2"
 status: stable
@@ -108,15 +108,15 @@ forward_compatible: false
 backward_compatible: 6_months
 
 requires:
-  agent-tooling: ">=0.2.0,<1.0"
+  fleet-agents: ">=0.2.0,<1.0"
   fleet-ops: ">=0.9.0,<1.0"
 
 supported_until: "2026-12-31"  # after which rope 0.8 required
 deprecation_announced: "2026-09-20"
-migration_target: "rope-mcp:0.8.0 (pending)"
+migration_target: "mcp-rope:0.8.0 (pending)"
 ```
 
-### vscode-workspace-mcp
+### mcp-vscode
 ```yaml
 version: "0.6.1"
 status: stable
@@ -125,11 +125,11 @@ forward_compatible: false
 backward_compatible: 6_months
 
 requires:
-  agent-tooling: ">=0.2.0,<1.0"
+  fleet-agents: ">=0.2.0,<1.0"
   fleet-ops: ">=0.9.0,<1.0"
 
 supported_until: "2026-12-31"
-migration_target: "vscode-workspace-mcp:0.7.0 (pending)"
+migration_target: "mcp-vscode:0.7.0 (pending)"
 ```
 
 ### fleet-ops
@@ -141,7 +141,7 @@ forward_compatible: false
 backward_compatible: 6_months
 
 requires:
-  agent-tooling: ">=0.2.0,<1.0"
+  fleet-agents: ">=0.2.0,<1.0"
 
   # NOTE: MCPs do NOT depend on fleet-ops
   # fleet-ops depends on MCPs through ProviderInvoker abstraction
@@ -160,18 +160,18 @@ exports:
 
 ```yaml
 oct_2026:
-  agent-tooling: "0.2.x patch releases"
-  rope-mcp: "0.7.2 stable"
-  vscode-workspace-mcp: "0.6.1 stable"
+  fleet-agents: "0.2.x patch releases"
+  mcp-rope: "0.7.2 stable"
+  mcp-vscode: "0.6.1 stable"
   fleet-ops: "0.9.x stable"
 
   target_compatibility: "baseline-0.1.0 verified"
   major_work: "Week 2 remediation decisions, strict-mode implementation"
 
 dec_2026:
-  agent-tooling: "0.3.0 (proposed)"  # NOTE: requires ADR
-  rope-mcp: "0.8.0 (proposed)"  # NOTE: after 0.7.2 sunset
-  vscode-workspace-mcp: "0.7.0 (proposed)"  # NOTE: after 0.6.1 sunset
+  fleet-agents: "0.3.0 (proposed)"  # NOTE: requires ADR
+  mcp-rope: "0.8.0 (proposed)"  # NOTE: after 0.7.2 sunset
+  mcp-vscode: "0.7.0 (proposed)"  # NOTE: after 0.6.1 sunset
   fleet-ops: "1.0.0 (proposed)"  # NOTE: requires contract stabilization
 
   major_work: "Phase 1 completion, federation scaling"
@@ -217,19 +217,19 @@ If a combination fails verification:
 
 ## Deprecation Timeline Example
 
-When rope-mcp moves from 0.7 to 0.8:
+When mcp-rope moves from 0.7 to 0.8:
 
 ```yaml
 deprecation_schedule:
   announcement_date: "2026-09-20"
 
-  rope-mcp:0.7.2:
+  mcp-rope:0.7.2:
     status: active
     last_releases_until: "2026-12-31"
     sunset_date: "2027-01-15"
     supported_customers: "all"
 
-  rope-mcp:0.8.0:
+  mcp-rope:0.8.0:
     status: released
     earliest_deployment: "2027-01-01"
     required_by: "2027-04-15"
@@ -319,8 +319,8 @@ week_2_status:
   tested_combinations: 1  # baseline only
 
   pending_verification:
-    - rope_backend_orchestration.py classification (affects rope-mcp role)
-    - fleet_ops public API definition (affects agent-tooling role)
+    - rope_backend_orchestration.py classification (affects mcp-rope role)
+    - fleet_ops public API definition (affects fleet-agents role)
     - adapter namespace adoption (affects repository structure)
 
   gates_before_matrix_expansion:

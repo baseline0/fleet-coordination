@@ -62,7 +62,7 @@ scope:
   repositories:
     - fleet-coordination
     - fleet-ops
-    - vscode-workspace-mcp
+    - mcp-vscode
 
 trial_profile:
   path: "trial-profile-readonly-poc.yaml"

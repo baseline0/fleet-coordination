@@ -1,0 +1,160 @@
+audit_date: 2026-09-23
+repository: fleet-agents
+repository_role: agent_library
+standard_id: fleet-engineering-compliance
+standard_version: 0.1.0
+pilot: true
+revision: "8682c91d21bc96dc719b2a8ff4c1addd827fccc2"
+controls_assessed:
+  - test_execution
+  - error_boundary_review
+
+assessment_execution:
+  mechanism: claude_subagent
+  fleet_ops_dispatch_id: null
+  fleet_ops_audit_trail: not_applicable
+  auditability: session_summary_and_repository_artifacts
+
+audit_results:
+  - control_id: test_execution
+    applicable: true
+    result: pass
+    confidence: high
+    evidence:
+      - source: justfile recipe
+        description: "`just test` exists and runs pytest with markers"
+        status: present
+      - source: tests/ directory structure
+        description: 642 tests organized by category (unit, integration, live)
+        status: complete
+      - source: CI workflow (`.github/workflows/test.yml`)
+        description: "Tests run on every commit; all markers included"
+        status: passing
+      - source: known tested behaviors
+        description: "Agent lifecycle, execution bounds, escape testing, exception handling"
+        status: documented_in_tests
+    operational_consequence: "Fleet-agents behaviors are validated by tests; regressions are detected"
+    limitations: "Coverage metrics not assessed; focus is on tested behaviors vs. known untested modules"
+    next_step: "no action"
+
+  - control_id: error_boundary_review
+    applicable: true
+    result: partial
+    confidence: medium
+
+    scope:
+      repository: fleet-agents
+      revision: "8682c91d21bc96dc719b2a8ff4c1addd827fccc2"
+      paths:
+        - "src/tooling/tui/live_dashboard_v2.py"
+        - "src/tooling/agents/enhanced_remediation.py"
+        - "src/tooling/agents/repo_eval.py"
+        - "src/tooling/agents/lint_fixer.py"
+
+    classification_rules:
+      acceptable_boundary: |
+        Handler logs context or records lifecycle state.
+        Error is returned to caller as domain result.
+        Caller can distinguish error from valid outcome.
+        Exception path is tested.
+
+      intentional_best_effort: |
+        Operation is explicitly optional (health check, feature flag, graceful degradation).
+        Failure is expected and handled gracefully.
+        Caller continues normally or with explicit fallback.
+
+      risky_silent_swallow: |
+        Handler swallows exception with no logging or result indication.
+        Caller cannot distinguish error from valid empty/false result.
+        Operation is at execution boundary, not internal helper.
+        Debugging is difficult: failure is hidden.
+
+    method:
+      discovery:
+        - "grep 'except Exception|except BaseException' src/ -r | wc -l → 97 handlers found"
+        - "Manual code inspection of each handler"
+
+      evidence_collection:
+        - "Examined handler implementation (logging, return type, caller behavior)"
+        - "Reviewed immediate callers to assess result usage"
+        - "Checked test coverage for exception paths"
+
+      classification:
+        - "Individual classification of all 97 handlers"
+        - "Grouped by acceptable, best-effort, unclear, risky"
+        - "Identified high-consequence clusters by operational impact"
+
+    evidence:
+      total_handlers: 97
+      acceptable_boundaries: 48
+      intentional_best_effort: 21
+      needs_focused_review: 8
+      risky_silent_swallow: 20
+
+      risky_handler_locations:
+        - path: "src/tooling/tui/live_dashboard_v2.py"
+          handlers: 6
+          lines: [274, 348, 363, 379, 409, 412]
+          consequence: "Telemetry extraction failures hide errors; operator metrics become unreliable"
+
+        - path: "src/tooling/agents/enhanced_remediation.py"
+          handlers: 4
+          lines: [177, 269, 354, 392]
+          consequence: "Suggestion helpers return None/[] on AST parse errors; callers assume parsing succeeded"
+
+        - path: "src/tooling/agents/repo_eval.py"
+          handlers: 3
+          lines: [387, 397, 487]
+          consequence: "AST parsing failures hidden in loops; incomplete analysis returned as complete"
+
+    limitations: |
+      - Static classification does not prove every runtime error path.
+      - Line references apply only to the assessed revision.
+      - Handler intent varies by context (graceful degradation vs. error hiding).
+      - Some silent failures may be intentional; full assessment requires deeper investigation.
+      - Classification is qualitative and requires code inspection.
+      - Runtime prevalence of failures not measured; static count only.
+
+    operational_consequence: |
+      Live dashboard metrics may be inaccurate when file I/O or JSON parsing fails silently.
+      Operator cannot distinguish "0 repos processed" (valid) from "repo listing failed" (error).
+      Suggestion helpers return None/[] on AST parse errors; callers assume parsing succeeded.
+      Overall: 20% of handlers create debugging ambiguity at execution boundaries.
+
+    next_step: "bounded remediation"
+
+    remediation:
+      status: planned
+      target_repository: fleet-agents
+      target_component: live_dashboard_v2.py
+      plan_reference: "governance/remediation-plans/fleet-agents-live-dashboard-v2-error-boundary-2026-09-23.md"
+      approved_scope:
+        - "Telemetry extraction error-state distinction"
+      excluded_scope:
+        - "enhanced_remediation.py"
+        - "repo_eval.py"
+        - "Other exception handling"
+      verification_required:
+        - "Behavior-based acceptance criteria (8 outcomes: ok, empty, unavailable, failed, partial)"
+        - "Focused exception-path tests"
+        - "Existing test suite"
+        - "Post-remediation error_boundary_review audit"
+
+summary: |
+  Fleet-agents passes test_execution control. Error boundary handling is partial:
+  20 handlers create operational ambiguity (silent failures indistinguishable from valid results).
+  Risk is concentrated in three areas. Recommend bounded remediation of highest-consequence cluster
+  (live_dashboard_v2.py) to distinguish errors from valid outcomes without removing graceful degradation.
+
+recommendations:
+  - action: "bounded investigation"
+    target: "live_dashboard_v2.py (lines 274, 348, 363, 379, 409, 412)"
+    justification: "Telemetry extraction failures hide errors; operator metrics become unreliable"
+    scope: "Refactor to distinguish 'no data' from 'unavailable/failed' in return type"
+    success_criteria: "Metrics show which dashboard values are incomplete due to errors"
+    stop_after_this: true
+
+next_audit:
+  recommended: |
+    After remediation of live_dashboard_v2, re-audit fleet-agents with same controls.
+    Then pilot on fleet-spec (standards_validation control only) to validate standard on different repo type.

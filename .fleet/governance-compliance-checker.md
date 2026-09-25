@@ -121,7 +121,7 @@ Total Repos: 19
 ================================================================================
 
 ✅ COMPLIANT REPOS:
-  agent-tooling                  (v1.0)
+  fleet-agents                  (v1.0)
   cv                             (v1.0)
   flashcards                     (v1.0)
   ...

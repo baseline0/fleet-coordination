@@ -2,15 +2,15 @@ version: "1.0"
 contract_version: "0.1.0"
 
 repositories:
-  agent-tooling:
+  fleet-agents:
     boundary_file: ".fleet/boundaries.md"
     ci_checks: [import-boundary, schema-ownership]
 
-  rope-mcp:
+  mcp-rope:
     boundary_file: ".fleet/boundaries.md"
     ci_checks: [import-boundary, no-routing]
 
-  vscode-workspace-mcp:
+  mcp-vscode:
     boundary_file: ".fleet/boundaries.md"
     ci_checks: [import-boundary, no-routing]
 
@@ -23,16 +23,16 @@ repositories:
     ci_checks: [decision-schema, no-tool-implementations]
 
 forbidden_imports:
-  agent-tooling:
+  fleet-agents:
     - "rope_mcp"
     - "vscode_workspace_mcp"
     - "fleet_ops"
 
-  rope-mcp:
+  mcp-rope:
     - "vscode_workspace_mcp"
     - "fleet_ops"
 
-  vscode-workspace-mcp:
+  mcp-vscode:
     - "rope_mcp"
     - "fleet_ops"
 
@@ -42,7 +42,7 @@ forbidden_imports:
     - "fleet_ops"
 
 expected_schemas:
-  agent-tooling:
+  fleet-agents:
     OperationContext: "agent_tooling.operation"
     AuditEvent: "agent_tooling.audit"
 
@@ -60,7 +60,7 @@ rules:
 
   BOUNDARY-002:
     statement: "MCPs must not import fleet-ops"
-    repos: [rope-mcp, vscode-workspace-mcp]
+    repos: [mcp-rope, mcp-vscode]
     check_type: import_boundary
 
   BOUNDARY-003:
@@ -74,18 +74,18 @@ rules:
     check_type: schema_ownership
 
   BOUNDARY-005:
-    statement: "agent-tooling owns OperationContext"
-    repos: [agent-tooling]
+    statement: "fleet-agents owns OperationContext"
+    repos: [fleet-agents]
     check_type: schema_ownership
 
   BOUNDARY-006:
-    statement: "agent-tooling owns AuditEvent"
-    repos: [agent-tooling]
+    statement: "fleet-agents owns AuditEvent"
+    repos: [fleet-agents]
     check_type: schema_ownership
 
   BOUNDARY-007:
     statement: "Each MCP retains independent safety checks"
-    repos: [rope-mcp, vscode-workspace-mcp]
+    repos: [mcp-rope, mcp-vscode]
     check_type: implementation_behavior
 
 exceptions: []

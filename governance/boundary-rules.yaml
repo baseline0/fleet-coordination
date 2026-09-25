@@ -12,15 +12,15 @@ rules:
 
   BOUNDARY-001-PRODUCTION:
     id: "BOUNDARY-001-PRODUCTION"
-    title: "Core agent-tooling production code must not import concrete MCP implementations"
+    title: "Core fleet-agents production code must not import concrete MCP implementations"
 
     description: |
-      Core agent-tooling logic must depend on abstract protocols, not concrete
+      Core fleet-agents logic must depend on abstract protocols, not concrete
       MCP implementations (rope_mcp, vscode_workspace_mcp). This enforces the
       ports-and-adapters pattern: core logic is independent of provider choice.
 
     scope:
-      repositories: [agent-tooling]
+      repositories: [fleet-agents]
       paths: [src/**/*.py]
       exclude: [src/adapters/**]
 
@@ -51,10 +51,10 @@ rules:
     description: |
       Unit tests (tests/test_*.py) must use mocks, fakes, or fixtures instead of
       importing real MCP implementations. This ensures unit tests validate
-      agent-tooling logic in isolation.
+      fleet-agents logic in isolation.
 
     scope:
-      repositories: [agent-tooling]
+      repositories: [fleet-agents]
       paths: [tests/test_*.py]
       exclude: [tests/integration/**, tests/fixtures/**]
 
@@ -84,7 +84,7 @@ rules:
       category with explicit ownership and maintenance scope.
 
     scope:
-      repositories: [agent-tooling]
+      repositories: [fleet-agents]
       paths: [tests/integration/**]
 
     allowed_imports:
@@ -93,10 +93,10 @@ rules:
       - vscode_workspace_mcp
 
     governance:
-      - Provider must be documented (rope-mcp, vscode-workspace-mcp, etc.)
+      - Provider must be documented (mcp-rope, mcp-vscode, etc.)
       - Dedicated CI job for integration tests
       - Named owner responsible for maintenance
-      - Permanence decision: keep in agent-tooling or migrate to coordination/?
+      - Permanence decision: keep in fleet-agents or migrate to coordination/?
 
     enforcement: "report_only"
     ci_gate: "observability_check"
@@ -123,7 +123,7 @@ rules:
       internals from becoming de-facto public APIs.
 
     scope:
-      repositories: [agent-tooling, rope-mcp, vscode-workspace-mcp, toolboxes]
+      repositories: [fleet-agents, mcp-rope, mcp-vscode, toolboxes]
       forbidden: [fleet_ops.src.**]
 
     forbidden_imports:
@@ -149,22 +149,22 @@ rules:
       treatment: "prohibit_and_define_public_api"
 
       findings:
-        - file: "agent-tooling/src/todo_generator_cli.py"
+        - file: "fleet-agents/src/todo_generator_cli.py"
           line: 85
           import: "from fleet_ops.agents.repo_eval import ..."
           remediation: "Replace with public fleet_ops.RepoEvaluationClient"
 
-        - file: "agent-tooling/src/code_search_cli.py"
+        - file: "fleet-agents/src/code_search_cli.py"
           line: 24
           import: "from fleet_ops.src.mcp_quota_manager import ..."
           remediation: "Replace with public fleet_ops.QuotaPolicy"
 
-        - file: "agent-tooling/src/lint_fixer.py"
+        - file: "fleet-agents/src/lint_fixer.py"
           line: 25
           import: "from fleet_ops.src.mcp_quota_manager import ..."
           remediation: "Replace with public fleet_ops.QuotaPolicy"
 
-        - file: "agent-tooling/src/test_validator.py"
+        - file: "fleet-agents/src/test_validator.py"
           line: 18
           import: "from fleet_ops.src.audit_logger import ..."
           remediation: "Move validator to fleet-ops OR use public fleet_ops.AuditVerifier"
@@ -179,9 +179,9 @@ rules:
 
 | Repository | BOUNDARY-001-PRODUCTION | BOUNDARY-001-UNIT | BOUNDARY-001-INTEGRATION | BOUNDARY-002-FLEET-OPS |
 |---|---|---|---|---|
-| agent-tooling | Blocking | Blocking | Report-only | Blocking |
-| rope-mcp | N/A | N/A | N/A | Blocking |
-| vscode-workspace-mcp | N/A | N/A | N/A | Blocking |
+| fleet-agents | Blocking | Blocking | Report-only | Blocking |
+| mcp-rope | N/A | N/A | N/A | Blocking |
+| mcp-vscode | N/A | N/A | N/A | Blocking |
 | fleet-ops | N/A | N/A | N/A | N/A |
 | toolboxes | N/A | N/A | N/A | Blocking |
 
@@ -238,7 +238,7 @@ rules:
 
 **BOUNDARY-001-INTEGRATION-PROVIDER-EXPLICIT**
 - Requires: Provider named in test docstring or metadata
-- Example: `@integration_test(provider="rope-mcp")`
+- Example: `@integration_test(provider="mcp-rope")`
 
 **BOUNDARY-001-INTEGRATION-OWNERSHIP**
 - Requires: Named test owner (person responsible)

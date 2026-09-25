@@ -1,0 +1,190 @@
+audit_date: 2026-09-23
+audit_type: post_remediation_reassessment
+repository: fleet-agents
+repository_role: agent_library
+standard_id: fleet-engineering-compliance
+standard_version: 0.1.0
+pilot: true
+
+assessment_scope:
+  pre_remediation_record: "fleet-agents-2026-09-23.yaml"
+  pre_remediation_revision: "8682c91d21bc96dc719b2a8ff4c1addd827fccc2"
+  post_remediation_revision: "5e10fd5e0e18be414921fd1e6ab548e97d5505ff"
+  implementation_status: "staged for review (not committed)"
+  authorized_scope: "live_dashboard_v2.py telemetry extraction boundary only"
+
+assessment_execution:
+  mechanism: claude_subagent
+  dispatch_id: null
+  fleet_ops_audit_trail: not_applicable
+  auditability: session_summary_and_implementation_artifacts
+
+controls_reassessed:
+  - error_boundary_review
+
+audit_results:
+  - control_id: error_boundary_review
+    repository: fleet-agents
+    applicable: true
+    pre_remediation_result: partial
+    post_remediation_result: partial
+    result_change: "Same status; scope intentionally limited"
+    confidence: medium
+
+    implementation_summary:
+      target_file: "src/tooling/tui/live_dashboard_v2.py"
+      handlers_refactored: 6
+      handler_lines: [274, 348, 363, 379, 409, 412]
+
+      changes:
+        - "Added TelemetryStatus enum (5 states: OK, EMPTY, UNAVAILABLE, FAILED, PARTIAL)"
+        - "Added TelemetryResult frozen dataclass with status, value, error, source"
+        - "Refactored _extract_repos() to return TelemetryResult"
+        - "Refactored _extract_fixes() to return TelemetryResult"
+        - "Refactored _extract_duration() to return TelemetryResult"
+        - "Updated _load_recent_runs() caller logic to check result.status"
+        - "Added dashboard error-state indicator ('⚠️ Incomplete' on failures)"
+        - "Replaced broad 'except Exception' with specific exception types (FileNotFoundError, OSError, JSONDecodeError)"
+        - "Added structured logging for debugging"
+
+      test_coverage:
+        new_test_file: "tests/integration/test_live_dashboard_v2.py"
+        test_count: 24
+        test_categories:
+          - TestExtractReposTelemetry (5 tests: OK, EMPTY, UNAVAILABLE, FAILED statuses)
+          - TestExtractFixesTelemetry (5 tests: all status outcomes)
+          - TestExtractDurationTelemetry (7 tests: OK, UNAVAILABLE, FAILED, timestamp parsing)
+          - TestTelemetryResultType (3 tests: dataclass immutability, enum values)
+          - TestCallerCompatibility (2 tests: callers distinguish empty from failed)
+          - TestLoadRecentRunsIntegration (2 tests: result processing, error detection)
+
+        test_results:
+          total_tests_run: 87
+          passed: 87
+          failed: 0
+          skipped: 1
+          regression_detected: false
+          test_command: "just test"
+
+    handler_classification_before:
+      acceptable_boundaries: 48
+      intentional_best_effort: 21
+      needs_focused_review: 8
+      risky_silent_swallow: 20
+      risky_concentration:
+        - "live_dashboard_v2.py: 6 handlers"
+        - "enhanced_remediation.py: 4 handlers"
+        - "repo_eval.py: 3 handlers"
+
+    handler_classification_after:
+      authorized_remediation_scope: "live_dashboard_v2.py only"
+      live_dashboard_v2:
+        pre_remediation: 6 risky silent-swallow handlers
+        post_remediation: 6 handlers now return explicit status (TelemetryResult)
+        status_outcomes: "OK, EMPTY, UNAVAILABLE, FAILED"
+        caller_distinguishable: true
+        dashboard_indicator: "⚠️ Incomplete when status is FAILED or UNAVAILABLE"
+
+      remaining_risky_handlers:
+        - "enhanced_remediation.py: 4 handlers (deferred to future audit)"
+        - "repo_eval.py: 3 handlers (deferred to future audit)"
+        - "Other modules: 7 handlers (deferred to future audit)"
+        - "Total remaining: 14 handlers outside remediation scope (intentionally not changed)"
+
+    result_rationale: |
+      Result remains PARTIAL because remediation was intentionally scoped to one module only.
+
+      **What changed (LIVE_DASHBOARD_V2.PY):**
+      6 telemetry extractors now return explicit TelemetryResult with status field.
+      Callers can distinguish valid empty data (EMPTY status) from operation failure (FAILED status).
+      Dashboard displays error indicators when data quality issues are detected.
+
+      **What was NOT changed (as authorized):**
+      enhanced_remediation.py (4 handlers): Deferred to future audit/remediation
+      repo_eval.py (3 handlers): Deferred to future audit/remediation
+      Other modules (7 handlers): Outside pilot scope
+      Total: 14 risky handlers remain unchanged
+
+      **Reason for PARTIAL (not PASS):**
+      Remediation addressed 6/20 (30%) of the original silent-failure risks.
+      14 risky handlers remain in fleet-agents; extend to other modules unknown.
+      This is INTENTIONAL: pilot authorized one module only to validate the remediation approach.
+
+    operational_consequence_before: |
+      Live dashboard metrics may be inaccurate when file I/O or JSON parsing fails silently.
+      Operator cannot distinguish "0 repos processed" (valid) from "repo listing failed" (error).
+
+    operational_consequence_after: |
+      Live dashboard telemetry extraction now reports explicit status.
+      Operator can see "⚠️ Incomplete" when metrics have errors.
+      Failures are distinguishable from valid empty data.
+      Debugging is now possible: error messages logged and displayed.
+
+      **Remaining risk (outside this remediation):**
+      enhanced_remediation.py and repo_eval.py still have silent-failure handlers.
+      These may still hide errors from operators/analyzers. Future pilot may address them.
+
+    confidence: "medium (same as pre-remediation; scope was intentionally limited)"
+
+    evidence:
+      - source: "git diff between revisions"
+        description: "6 handlers refactored to return TelemetryResult; 24 tests added; dashboard updated"
+        status: "staged for review"
+
+      - source: "Test results"
+        description: "87/87 tests pass (including 24 new regression tests); no regressions"
+        status: "verified"
+
+      - source: "Code review checklist"
+        description: "TelemetryResult type defined; all 6 handlers use it; callers check status; tests cover all status outcomes"
+        status: "complete"
+
+    limitations: |
+      - **Scope limitation (intentional):** Remediation addressed only live_dashboard_v2.py.
+        14 risky handlers remain in fleet-agents in other modules. This is deliberate:
+        pilot authorized ONE module to validate the approach before scaling.
+
+      - **Test coverage (test-focused):** 24 new tests cover exception paths in the 6 refactored handlers.
+        Runtime prevalence of failures is not measured (not in scope of unit tests).
+
+      - **Caller identification:** Updated _load_recent_runs() only (direct caller within the module).
+        If external callers depend on the old return types (bare lists/ints), they may break.
+        No external callers identified during implementation (isolated module).
+
+      - **Remaining open questions:** Whether enhanced_remediation.py and repo_eval.py silent failures
+        occur frequently in production or are rare edge cases. Future observability work recommended.
+
+    next_step: |
+      **Immediate:** Review staged implementation, merge to main if approved.
+
+      **Short-term:** Run live dashboard in production; observe whether error indicators appear,
+      how frequently, and whether they aid debugging. Collect operational signals.
+
+      **Next audit:** After live_dashboard_v2.py remediation proves effective, pilot enhanced_remediation.py
+      (4 handlers) using same approach. Then repo_eval.py (3 handlers). Then reassess across fleet.
+
+remediation_authorization_reference: "governance/REMEDIATION-AUTHORIZATION.md"
+
+remediation_plan_reference: "governance/remediation-plans/fleet-agents-live-dashboard-v2-error-boundary-2026-09-23.md"
+
+pre_remediation_assessment_reference: "fleet-agents-2026-09-23.yaml"
+
+summary: |
+  Post-remediation assessment of fleet-agents error_boundary_review control after live_dashboard_v2.py
+  telemetry extraction boundary remediation.
+
+  **Outcome:** PARTIAL (intentional scope limitation)
+
+  The remediation successfully made 6 telemetry extractors distinguishable.
+  TelemetryResult type with explicit status (OK, EMPTY, UNAVAILABLE, FAILED) is now in use.
+  Dashboard error indicators guide operators. All tests pass; no regressions.
+
+  14 risky handlers remain in other modules (enhanced_remediation, repo_eval, etc.).
+  This is deliberate: pilot scope was one module to prove the approach.
+
+  Future audits should iterate: remediate one module → assess impact → next module.
+  This staged approach validates remediation effectiveness before scaling.
+
+assessment_date: 2026-09-23
+assessor: "Compliance Audit Pilot (remediation phase)"
+assessment_provenance: "subagent implementation + manual assessment"

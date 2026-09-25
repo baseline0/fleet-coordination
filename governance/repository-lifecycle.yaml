@@ -8,7 +8,7 @@
 ---
 
 repositories:
-  agent-tooling:
+  fleet-agents:
     role: "shared-agent-infrastructure"
     role_version: "0.2"
     lifecycle_state: mature
@@ -23,8 +23,8 @@ repositories:
         - fleet-base
       forbidden:
         - fleet-ops (orchestration, not shared)
-        - rope-mcp (provider, not shared)
-        - vscode-workspace-mcp (provider, not shared)
+        - mcp-rope (provider, not shared)
+        - mcp-vscode (provider, not shared)
 
     admission:
       status: approved
@@ -46,11 +46,11 @@ repositories:
 
     notes: "Awaiting Week 2 remediation decisions on 9 production imports"
 
-  rope-mcp:
+  mcp-rope:
     role: "capability-provider"
     role_version: "0.1"
     lifecycle_state: approved
-    owner: "# NOTE: rope-mcp-team"
+    owner: "# NOTE: mcp-rope-team"
 
     public_contracts:
       - ProviderInvoker (v0.1)
@@ -59,7 +59,7 @@ repositories:
 
     dependencies:
       allowed:
-        - agent-tooling (shared contracts only)
+        - fleet-agents (shared contracts only)
         - fleet-base
       forbidden:
         - fleet-ops (no callback to orchestrator)
@@ -75,19 +75,19 @@ repositories:
       promoted_date: "2026-09-01"
       maturity_criteria:
         - contract_stability: "BOUNDARY-001 rope imports being remediated"
-        - test_coverage: "# NOTE: verify rope-mcp test coverage"
+        - test_coverage: "# NOTE: verify mcp-rope test coverage"
         - runtime_observability: "# NOTE: verify audit integration"
         - boundary_compliance: "BOUNDARY-001 violations being addressed"
         - documented_ownership: true
 
     compatibility:
       fleet-ops: ">=0.9,<1.0"
-      agent-tooling: ">=0.2,<1.0"
+      fleet-agents: ">=0.2,<1.0"
 
     deprecation_status: active
     retirement_date: null
 
-  vscode-workspace-mcp:
+  mcp-vscode:
     role: "capability-provider"
     role_version: "0.1"
     lifecycle_state: approved
@@ -100,7 +100,7 @@ repositories:
 
     dependencies:
       allowed:
-        - agent-tooling (shared contracts only)
+        - fleet-agents (shared contracts only)
         - fleet-base
       forbidden:
         - fleet-ops (no callback)
@@ -117,7 +117,7 @@ repositories:
 
     compatibility:
       fleet-ops: ">=0.9,<1.0"
-      agent-tooling: ">=0.2,<1.0"
+      fleet-agents: ">=0.2,<1.0"
 
     deprecation_status: active
     retirement_date: null
@@ -169,7 +169,7 @@ repositories:
 
     dependencies:
       allowed:
-        - agent-tooling
+        - fleet-agents
         - fleet-base
       forbidden:
         - fleet-ops (orchestration, not shared)
@@ -505,13 +505,13 @@ To promote from proposed/incubating to approved/mature:
 
 ## Deprecation & Extinction Workflow
 
-### Deprecation (e.g., rope-mcp v0.6.0 → v0.7.0)
+### Deprecation (e.g., mcp-rope v0.6.0 → v0.7.0)
 
 ```yaml
 deprecated:
   announcement_date: "2026-09-20"
   sunset_date: "2026-12-31"
-  migration_target: "rope-mcp v0.7.2"
+  migration_target: "mcp-rope v0.7.2"
   notification_channels: "# NOTE: list communication channels"
 ```
 
@@ -519,7 +519,7 @@ deprecated:
 
 ```yaml
 quarantined:
-  reason: "rope-mcp replaced by refactor-library (generic refactoring)"
+  reason: "mcp-rope replaced by refactor-library (generic refactoring)"
   start_date: "2027-01-15"
   existing_leases:
     - workspace_id: "proj-a"
@@ -532,9 +532,9 @@ quarantined:
 ```yaml
 retired:
   retirement_date: "2027-03-15"
-  archive_location: "https://github.com/archive/rope-mcp"
+  archive_location: "https://github.com/archive/mcp-rope"
   migration_status: "all_leases_migrated"
-  final_documentation: "https://docs.example.com/rope-mcp-v0.7-final"
+  final_documentation: "https://docs.example.com/mcp-rope-v0.7-final"
 ```
 
 ---

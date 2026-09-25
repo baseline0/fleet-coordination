@@ -50,7 +50,7 @@ Specifies which MCP servers/tools are available.
 ```yaml
 providers:
   allowed:
-    - vscode-workspace-mcp
+    - mcp-vscode
   approval_required: false
   quarantine_available: true
 ```
@@ -66,9 +66,9 @@ Defines which workspaces agents can access.
 ```yaml
 workspaces:
   allowlist:
-    - workspace_id: "trial-vscode-workspace-mcp"
-      path: "/home/mark/projects/vscode-workspace-mcp"
-      description: "vscode-workspace-mcp repository (approved trial project)"
+    - workspace_id: "trial-mcp-vscode"
+      path: "/home/mark/projects/mcp-vscode"
+      description: "mcp-vscode repository (approved trial project)"
   blocked:
     - "all others"
 ```

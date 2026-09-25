@@ -15,11 +15,11 @@ description: "14-repository managed fleet: governance + runtime + providers + ap
 fleet_scope:
   core:
     - fleet-base
-    - agent-tooling
+    - fleet-agents
     - fleet-coordination
     - fleet-ops
-    - rope-mcp
-    - vscode-workspace-mcp
+    - mcp-rope
+    - mcp-vscode
     - toolboxes
 
   managed:
@@ -34,7 +34,7 @@ fleet_scope:
   trial:
     - fleet-ops
     - fleet-coordination
-    - vscode-workspace-mcp
+    - mcp-vscode
 
 scope_requirements:
   core:
@@ -142,7 +142,7 @@ trial:
   start_date: "2026-10-04"
   end_date: "2026-10-18"
   approved_providers:
-    - vscode-workspace-mcp
+    - mcp-vscode
 
 lifecycle_operations:
   proposed:
@@ -177,47 +177,47 @@ lifecycle_operations:
 dependency_graph:
   fleet-base:
     shared_by:
-      - agent-tooling
+      - fleet-agents
       - fleet-coordination
       - toolboxes
 
-  agent-tooling:
+  fleet-agents:
     protocol_provided_to:
-      - rope-mcp
-      - vscode-workspace-mcp
+      - mcp-rope
+      - mcp-vscode
       - toolboxes
 
   fleet-coordination:
     governance_for:
       - fleet-ops
-      - rope-mcp
-      - vscode-workspace-mcp
-      - agent-tooling
+      - mcp-rope
+      - mcp-vscode
+      - fleet-agents
       - toolboxes
 
   fleet-ops:
     depends_on:
-      - agent-tooling
+      - fleet-agents
       - fleet-coordination
     runtime_for:
-      - rope-mcp
-      - vscode-workspace-mcp
+      - mcp-rope
+      - mcp-vscode
 
-  rope-mcp:
+  mcp-rope:
     protocol_from:
-      - agent-tooling
+      - fleet-agents
     invoked_by:
       - fleet-ops
 
-  vscode-workspace-mcp:
+  mcp-vscode:
     protocol_from:
-      - agent-tooling
+      - fleet-agents
     invoked_by:
       - fleet-ops
 
   toolboxes:
     protocol_from:
-      - agent-tooling
+      - fleet-agents
     depends_on:
       - fleet-base
 
@@ -234,8 +234,8 @@ repositories:
     owner: "# NOTE: assign"
     lifecycle: approved
 
-  agent-tooling:
-    source: "../agent-tooling"
+  fleet-agents:
+    source: "../fleet-agents"
     ref: "91e4c07aff04a2c29ca9dbe6ba3a6d569ae197f5"
     role: "shared agent infrastructure and contracts"
     required_boundaries: true
@@ -270,8 +270,8 @@ repositories:
     owner: "# NOTE: assign"
     lifecycle: approved
 
-  rope-mcp:
-    source: "../rope-mcp"
+  mcp-rope:
+    source: "../mcp-rope"
     ref: "0a16aeb745bf6b0d251c81c63dad75ec7f47297a"
     role: "provider adapter"
     required_boundaries: true
@@ -282,8 +282,8 @@ repositories:
     owner: "# NOTE: assign"
     lifecycle: approved
 
-  vscode-workspace-mcp:
-    source: "../vscode-workspace-mcp"
+  mcp-vscode:
+    source: "../mcp-vscode"
     ref: "1f9dca511fed877ce4885ff2cd3a4ab24904f714"
     role: "provider adapter"
     required_boundaries: true

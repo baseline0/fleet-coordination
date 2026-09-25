@@ -1,0 +1,292 @@
+schema_version: 1
+standard_id: fleet-engineering-compliance
+version: 0.1.0
+updated: 2026-09-23
+
+description: |
+  Role-aware engineering controls for fleet repositories.
+
+  Each control specifies: applicability (by role), evidence sources, and outcome states.
+  No numeric scoring. Results are: pass | fail | partial | not_applicable | insufficient_evidence.
+  Confidence assessed per outcome: high | medium | low.
+
+controls_inventory:
+  Seven controls apply to one or more roles:
+  - package_install
+  - test_execution
+  - import_boundary_check
+  - error_boundary_review
+  - repository_metadata
+  - governance_schema_validation
+  - standards_validation
+
+repository_roles:
+  foundation:
+    description: Core governance and base libraries (fleet-base, fleet-coordination)
+    required_controls:
+      - package_install
+      - test_execution
+      - import_boundary_check
+      - repository_metadata
+      - governance_schema_validation
+
+  orchestration:
+    description: Fleet orchestration and coordination layer (fleet-ops)
+    required_controls:
+      - package_install
+      - test_execution
+      - import_boundary_check
+      - repository_metadata
+      - error_boundary_review
+
+  agent_library:
+    description: Agent implementations and tooling (fleet-agents, fleet-toolbox)
+    required_controls:
+      - package_install
+      - test_execution
+      - import_boundary_check
+      - error_boundary_review
+
+  standards:
+    description: Standards and specification repositories (fleet-spec)
+    required_controls:
+      - package_install
+      - repository_metadata
+      - standards_validation
+
+controls:
+  package_install:
+    id: package_install
+    description: Repository has a reproducible installation and environment setup path.
+
+    applicability:
+      - foundation
+      - orchestration
+      - agent_library
+      - standards
+
+    evidence_sources:
+      - pyproject.toml (or equivalent)
+      - justfile (if applicable)
+      - CI workflow definition
+
+    status_values:
+      - pass
+      - fail
+      - insufficient_evidence
+
+    pass_criteria: |
+      - pyproject.toml exists with [project] section and dependencies listed
+      - `uv sync` or `uv install` documented as setup command
+      - CI workflow installs and configures environment reproducibly
+
+    not_applicable_when: |
+      - Repository is non-Python (not applicable here)
+
+  test_execution:
+    id: test_execution
+    description: Executable code has a reproducible test command and known test coverage.
+
+    applicability:
+      - foundation
+      - orchestration
+      - agent_library
+
+    evidence_sources:
+      - tests/ directory structure
+      - pyproject.toml test configuration
+      - justfile test recipes
+      - CI workflow test execution
+
+    status_values:
+      - pass
+      - partial
+      - fail
+      - insufficient_evidence
+
+    pass_criteria: |
+      - `just test` command exists and runs
+      - tests/ directory contains test files organized by category
+      - CI workflow executes tests for every commit
+      - Known executable behaviors are covered by tests
+
+    partial_criteria: |
+      - Tests exist but coverage is incomplete or inconsistent
+      - Some execution paths or modules are intentionally untested
+      - Test markers (unit, integration, live) guide test scope
+
+    notes: |
+      Do not infer compliance from test-file counts or percentage-coverage metrics.
+      Assess against executable behaviors actually tested.
+      Report tested behaviors and known untested modules separately.
+
+    not_applicable_when: |
+      - Repository has no executable Python code (e.g., documentation-only)
+
+  import_boundary_check:
+    id: import_boundary_check
+    description: Python package repositories enforce their declared import layer boundaries.
+
+    applicability:
+      - foundation
+      - orchestration
+      - agent_library
+
+    evidence_sources:
+      - import-linter configuration (setup.cfg or pyproject.toml)
+      - `just check-imports` or equivalent validation
+      - CI workflow boundary checks
+
+    status_values:
+      - pass
+      - fail
+      - not_applicable
+
+    pass_criteria: |
+      - import-linter (or equivalent) is configured
+      - Layer boundaries are defined (e.g., L0, L1, L2)
+      - `just check-imports` runs and passes in CI
+      - No circular dependencies
+
+    not_applicable_when: |
+      - Repository has no Python package or single-module structure
+      - No defined layer architecture
+
+  error_boundary_review:
+    id: error_boundary_review
+    description: |
+      Generic exception handlers at execution boundaries (agents, APIs, I/O) preserve
+      failure evidence (logging, audit trail) or return an intentional domain outcome
+      distinguishable from valid empty/false results.
+
+    applicability:
+      - orchestration
+      - agent_library
+
+    evidence_sources:
+      - Generic exception handlers in source (except Exception, except BaseException)
+      - Handler implementation (logging, status codes, return types)
+      - Immediate callers and how they use results
+      - Tests covering exception paths
+
+    status_values:
+      - pass
+      - partial
+      - fail
+      - insufficient_evidence
+
+    pass_criteria: |
+      - No silent exception swallowing (except Exception: pass) at shared boundaries
+      - Exceptions logged with context, or caught and returned as domain results
+      - Callers can distinguish "no data" from "operation failed"
+      - Exception paths are tested
+
+    partial_criteria: |
+      - Some handlers preserve evidence; others are ambiguous
+      - Handler count and classification known; remediation scope defined
+      - No systematic silent-failure pattern at critical boundaries
+
+    fail_criteria: |
+      - Systematic silent exception swallowing (>10% of handlers)
+      - High-consequence operations hide errors (telemetry, orchestration decisions)
+      - Callers cannot distinguish failure from valid empty result
+
+    classification_rules: |
+      - A generic exception handler is reviewed individually; its count alone is not a defect.
+      - Acceptable boundaries: exceptions logged + lifecycle recorded + error returned to caller.
+      - Acceptable best-effort: optional features where failure is expected and handled gracefully.
+      - Silent-failure risk: exceptions swallowed with no logging, no result indication.
+      - Each handler must be classified before control status is assigned.
+
+    notes: |
+      Do not use exception count as a compliance metric. Classify handlers individually.
+      Distinguish between "intentional graceful degradation" and "hidden errors."
+      Focus on execution boundaries where silent failures create operational ambiguity.
+
+  repository_metadata:
+    id: repository_metadata
+    description: Repository is represented in the fleet governance inventory and declares its role.
+
+    applicability:
+      - foundation
+      - orchestration
+      - agent_library
+      - standards
+
+    evidence_sources:
+      - governance/fleet-architecture.yaml (fleet repository registry)
+      - Repository BOUNDARIES.md or equivalent
+      - .fleetconfig.yaml (if role-specific governance metadata is required)
+
+    status_values:
+      - pass
+      - fail
+      - not_applicable
+
+    pass_criteria: |
+      - Repository is listed in governance/fleet-architecture.yaml with declared role
+      - Role matches control requirements (e.g., foundation, agent_library)
+      - Repository entry is up-to-date with current maintainers and scope
+
+    notes: |
+      Do not require .fleetconfig.yaml unless this standard and policy explicitly require that file.
+      Metadata registry is the source of truth; use it for applicability checks.
+
+  governance_schema_validation:
+    id: governance_schema_validation
+    description: Governance and standards repositories validate their own policy schemas.
+
+    applicability:
+      - foundation
+
+    evidence_sources:
+      - YAML schema definitions (governance/compliance-standard.yaml, etc.)
+      - Validation tests (tests/test_governance_schemas.py or equivalent)
+      - CI workflow schema validation
+
+    status_values:
+      - pass
+      - fail
+      - insufficient_evidence
+
+    pass_criteria: |
+      - YAML/JSON schemas are formally defined
+      - Automated validation tests exist
+      - CI validates governance artifacts against schemas
+      - Invalid configurations are rejected at load time
+
+  standards_validation:
+    id: standards_validation
+    description: Standards repository documents and validates its own standards.
+
+    applicability:
+      - standards
+
+    evidence_sources:
+      - STANDARDS.md or specification document
+      - Validation tests demonstrating compliance
+      - Examples or reference implementations
+
+    status_values:
+      - pass
+      - partial
+      - fail
+      - insufficient_evidence
+
+    pass_criteria: |
+      - Standards are clearly documented and versioned
+      - Repository demonstrates its own standards (code as docs)
+      - Examples or test cases show expected patterns
+      - Standards repo itself complies with standards it defines
+
+audit_trail:
+  control_versions: |
+    0.1.0 (2026-09-23): Initial five controls, role-based applicability.
+      Pilot: fleet-agents (test_execution, error_boundary_review).
+
+  promotion_criteria: |
+    A control is promoted to CI enforcement only after:
+    - Two successful audits across different repositories
+    - Deterministic validation command exists
+    - False-positive rate < 5%
+    - Remediation guidance is clear and bounded

@@ -1,13 +1,7 @@
+import "../fleet-agents/just/shared.just"
+
 @default:
   @just --list
-
-commit *ARGS:
-  git commit {{ ARGS }}
-
-test:
-  uv run pytest tests/ -v
-
-check: test
 
 # Fleet governance compliance — check all repos
 check-governance:

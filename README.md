@@ -42,10 +42,10 @@ Current manifest: `fleet.yaml`
 **Status:** candidate (warnings OK, errors block)
 
 **Repositories:**
-- `agent-tooling` — architecture control plane (approved)
+- `fleet-agents` — architecture control plane (approved)
 - `fleet-ops` — runtime control plane (mature)
-- `rope-mcp` — provider adapter (approved)
-- `vscode-workspace-mcp` — provider adapter (approved)
+- `mcp-rope` — provider adapter (approved)
+- `mcp-vscode` — provider adapter (approved)
 - `toolboxes` — domain capabilities (proposed)
 
 ## Directory Structure
@@ -89,7 +89,7 @@ JSON output includes:
   "fleet_release": "0.1.0",
   "status": "valid|candidate|invalid",
   "repositories": {
-    "agent-tooling": {"status": "pass", "ref": "abc123"},
+    "fleet-agents": {"status": "pass", "ref": "abc123"},
     ...
   },
   "contract_bundle": "0.1.0",

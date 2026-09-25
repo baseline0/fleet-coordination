@@ -6,7 +6,7 @@ scope:
   repositories:
     - fleet-coordination
     - fleet-ops
-    - vscode-workspace-mcp
+    - mcp-vscode
 
 trial_profile:
   # Path to trial profile file (relative to project root)
@@ -23,7 +23,7 @@ manifest:
   required_repos:
     - fleet-coordination
     - fleet-ops
-    - vscode-workspace-mcp
+    - mcp-vscode
 
 repositories:
   # For each trial repo, declare what we expect
@@ -37,7 +37,7 @@ repositories:
     requires_git_repo: true
     requires_commit_refs: false
 
-  vscode-workspace-mcp:
+  mcp-vscode:
     boundary_file: ".fleet/BOUNDARIES.md"
     requires_git_repo: true
     requires_commit_refs: false
