@@ -30,3 +30,8 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "unit: unit-level tests (fast, isolated, no dependencies)",
+    "integration: integration-level tests (realistic workflows, local-only)",
+    "e2e: end-to-end tests (full workflows)",
+]

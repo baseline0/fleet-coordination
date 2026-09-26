@@ -4,16 +4,76 @@
 
 ---
 
+## Strategic Review: Fleet Operating Model (20–40 Repo Scale)
+
+**Goal:** Assess and formalize the `.fleet/` folder structure, governance model, and operating cadence for a 20–40 repository portfolio.
+
+**Context:** As the fleet grows beyond a handful of repos, repeatable governance, consistent structure, and automated health checks become critical. This review synthesizes best practices from GitHub, GitLab, and industry guidance on repository portfolio management.
+
+**Scope (comprehensive assessment):**
+
+1. **Portfolio Inventory & Metadata** ([see guidance](pasted_content_686e))
+   - [ ] Current `.fleet/` structure and content in each repo
+   - [ ] Repository catalog (source of truth: YAML/JSON or internal portal?)
+   - [ ] Ownership, lifecycle, business domain, criticality, tier assignments
+   - [ ] Dependency and consumer relationships mapped
+
+2. **Repository Contract & Standards**
+   - [ ] README template and baseline quality (ownership, lifecycle, runbook, architecture)
+   - [ ] CODEOWNERS and code-review enforcement
+   - [ ] CONTRIBUTING.md, SECURITY.md, CHANGELOG/release-notes conventions
+   - [ ] Architecture decision records (ADRs) or runbook patterns
+   - [ ] Consistency of naming (repos, branches, tags, labels, releases)
+
+3. **Governance & Automation**
+   - [ ] Branch protection rules (PR requirement, CI gates, review signoff, `CODEOWNERS` integration)
+   - [ ] CI/CD patterns (reusable workflows, parallel jobs, caching, artifact handling)
+   - [ ] Dependency management (Dependabot/Renovate, patch vs. major update policy)
+   - [ ] Secret scanning and vulnerability scanning enabled fleet-wide
+   - [ ] Repository provisioning and template pipeline
+
+4. **Operating Cadence & Metrics**
+   - [ ] Weekly/biweekly review process (blocked PRs, main-branch health, vulnerabilities, stale branches)
+   - [ ] Monthly health report (ownership, CI reliability, dependency freshness, runtime EOL exposure)
+   - [ ] Quarterly checkpoints (ownership confirmation, lifecycle re-assessment, access review, boundary review)
+   - [ ] Key metrics tracked (build success rate, CI duration, PR lag time, vulnerability age, deployment frequency)
+
+5. **Repository Boundary Decisions**
+   - [ ] Polyrepo vs. monorepo rationale documented
+   - [ ] Criteria for splitting/consolidating repositories clear
+   - [ ] Tightly coupled repos identified (candidates for shared CI, coordinated releases)
+
+**Deliverables:**
+- Formalized `.fleet/` schema (config.yaml, catalog-info.yaml, governance.yaml)
+- Fleet inventory (repo metadata, ownership, lifecycle state) in YAML or catalog format
+- Repository golden-path template with baseline files, labels, CI, and policies
+- Operating cadence checklist (weekly, monthly, quarterly review templates)
+- Health dashboard or metric collection process (even simple: dashboard.yaml or script)
+- Documentation: repo boundaries rationale, ownership model, exception process
+
+**Done when:**
+- `.fleet/` structure is consistent across 3+ sample repos
+- Fleet inventory (at least 10 repos) is accurate and traceable
+- Golden-path template is adopted for next new repo
+- One end-to-end operating cadence cycle completed (e.g., first monthly health review)
+
+**Effort:** 6–8 hours (one-time setup; ongoing cadence is ~2 hours/month)
+
+**Acceptance:** A new engineer can open *any* repository in the fleet and within 5 minutes know: what it does, who owns it, how to change it, how it is released, and whether it is healthy.
+
+---
+
 ## Compliance Backlog (Non-Blocking)
 
 These are valid tasks but do not block Morning Review:
 
 ### Maintenance: Initialize fleet-spec governance
-- **Priority:** Next small maintenance task
-- **Scope:** Add `.fleet/` directory to fleet-spec
-- **Done when:** governance_schema_validation control passes
-- **Files:** `.fleet/config.yaml`, `.fleet/catalog-info.yaml`, `.fleet/boundaries.yaml` (v1.0 schema)
-- **Effort:** 30 minutes
+- **Priority:** Next small maintenance task (depends on Strategic Review above for schema decisions)
+- **Scope:** Add `.fleet/` directory to fleet-spec with formalized schema
+- **Done when:** governance_schema_validation control passes; `.fleet/` files match Strategic Review schema
+- **Files:** `.fleet/config.yaml`, `.fleet/catalog-info.yaml`, `.fleet/governance.yaml` (schema TBD from Strategic Review)
+- **Effort:** 30 minutes (after Strategic Review defines schema)
+- **Related:** Strategic Review (section above) will define `.fleet/` structure, ownership model, and operating cadence
 
 ### Review: Classify fleet-toolbox handlers
 - **Priority:** Next focused review task
