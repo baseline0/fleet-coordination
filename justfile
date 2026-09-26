@@ -124,7 +124,8 @@ governance-checkpoint-quarterly:
   set -euo pipefail
   REPORT_DIR="reports/governance/quarterly"
   mkdir -p "$REPORT_DIR"
-  QUARTER=$(date +%Y-Q$(( ($(date +%m) - 1) / 3 + 1 )))
+  MONTH=$(date +%m | sed 's/^0//')  # Remove leading zero
+  QUARTER=$(date +%Y-Q$(( (MONTH - 1) / 3 + 1 )))
   REPORT="$REPORT_DIR/$QUARTER.md"
 
   {
