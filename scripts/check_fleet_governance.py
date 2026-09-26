@@ -30,6 +30,8 @@ REQUIRED_FILES = {
 }
 
 OPTIONAL_FILES = {
+    "health.yaml": "CI dashboards, coverage, alerts, and health pointers",
+    "release-strategy.yaml": "Versioning, release cadence, and deployment target",
     "roadmap.yaml": "Milestone and roadmap tracking",
     "standards.md": "Repository-specific standards",
     "maintenance.md": "Maintenance procedures",
